@@ -41,11 +41,19 @@ const PORTALS_LIST = [
   { rank: 15, name: "중소벤처기업부", url: "https://www.mss.go.kr/site/smba/ex/bbs/List.do?cbIdx=310" }
 ];
 
+function formatDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
 export default function App() {
-  // Initialize date range: default from Jan 1st, 2026 to June 30th, 2026
-  const [startDate, setStartDate] = useState("2026-01-01");
-  const [endDate, setEndDate] = useState("2026-06-30");
-  const [keyword, setKeyword] = useState("AI");
+  // Initialize date range: default from 30 days ago to today
+  const today = new Date();
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const [startDate, setStartDate] = useState(formatDate(thirtyDaysAgo));
+  const [endDate, setEndDate] = useState(formatDate(today));
+  const [keyword, setKeyword] = useState("의료기기");
   
   const [loading, setLoading] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractResponse | null>(null);
