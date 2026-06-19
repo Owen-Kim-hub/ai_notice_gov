@@ -184,11 +184,10 @@ export default function App() {
             <Layers className="w-48 h-48" />
           </div>
           <div className="relative z-10 max-w-3xl">
-            <h2 className="text-lg md:text-xl font-bold tracking-tight mb-1.5"> R&D 국가 공고 "AI" 맞춤형 일괄 전처리 시스템 </h2>
+            <h2 className="text-lg md:text-xl font-bold tracking-tight mb-1.5"> R&D 국가 공고 탐색 시스템 (시범운영) </h2>
             <p className="text-xs md:text-sm text-indigo-200 leading-relaxed mb-4">
-              국내 주요 범부처 R&D 지원 포털의 고시 및 신규 사업 목록에서 인공지능 관련 공고를 실시간 수집 및 가중 관리합니다.
-              특히, 범부처 포털 간 <strong>중복 미러링 공고</strong>를 축 처리하여 <u>우선순위가 가장 높은 포털 및 사이트 주소</u> 한곳만 단일 보존하고,
-              즉시 엑셀 가동 및 개별 공고문 직접 연결을 안전하게 지원합니다.
+              국내 의료기기 관련 주요 부처의 R&D 지원 공고사이트로 부터 입력하신 핵심타겟키워드를 중심으로 공고문을 실시간 수집합니다.
+              특히, 부처 포털 간 <strong>중복 공고</strong>를 제외하고 개별 공고문에 접속할 수 있도록 지원합니다.
             </p>
             <div className="flex flex-wrap gap-2 text-[11px] text-indigo-100">
               <span className="bg-indigo-800/60 px-2.5 py-1 rounded-md border border-indigo-700/50">#1 IRIS 최우선</span>
