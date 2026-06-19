@@ -41,18 +41,22 @@ const PORTALS_LIST = [
   { rank: 15, name: "중소벤처기업부", url: "https://www.mss.go.kr/site/smba/ex/bbs/List.do?cbIdx=310" }
 ];
 
-function formatDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
+function formatDateKST(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 }
 
 export default function App() {
-  // Initialize date range: default from 30 days ago to today
-  const today = new Date();
-  const thirtyDaysAgo = new Date(today);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  // Initialize date range: default from 30 days ago to today, based on KST (Korea Standard Time)
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-  const [startDate, setStartDate] = useState(formatDate(thirtyDaysAgo));
-  const [endDate, setEndDate] = useState(formatDate(today));
+  const [startDate, setStartDate] = useState(formatDateKST(thirtyDaysAgo));
+  const [endDate, setEndDate] = useState(formatDateKST(now));
   const [keyword, setKeyword] = useState("의료기기");
   
   const [loading, setLoading] = useState(false);
