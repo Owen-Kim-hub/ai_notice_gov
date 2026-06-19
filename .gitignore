@@ -9,5 +9,3 @@ coverage/
 ai-notice-gov.zip
 
 .vercel
-api/extract.js
-api/extract.cjs
