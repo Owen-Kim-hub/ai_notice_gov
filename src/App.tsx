@@ -32,7 +32,7 @@ const PORTALS_LIST = [
   { rank: 6, name: "중소기업 기술개발사업 종합관리시스템 (smtech)", url: "https://www.smtech.go.kr/front/ifg/no/notice02_list.do" },
   { rank: 7, name: "범부처전주기의료기기연구개발사업단", url: "https://kmdf.org/official" },
   { rank: 8, name: "의료기기산업 종합정보시스템", url: "https://www.khidi.or.kr/board?menuId=MENU01484&siteId=SITE00039" },
-  { rank: 9, name: "산업통상자원부", url: "https://www.motie.go.kr" },
+  { rank: 9, name: "산업통상자원부", url: "https://www.motir.go.kr/kor/article/ATCL2826a2625" },
   { rank: 10, name: "보건복지부", url: "https://www.mohw.go.kr/board.es?mid=a10501010200&bid=0003&cg_code=C01" },
   { rank: 11, name: "과학기술정보통신부", url: "https://www.msit.go.kr/bbs/list.do?sCode=user&mPid=121&mId=311" },
   { rank: 12, name: "보건의료기술 종합정보시스템 (HTDream)", url: "https://www.htdream.kr/main/pubAmt/PubAmtList.do" },
@@ -427,16 +427,15 @@ export default function App() {
                       />
                     </div>
 
-                    {/* R&D Portal Block Prevention Guide Banner */}
                     <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-3 text-xs text-neutral-800 leading-relaxed space-y-1.5 shadow-2xs">
                       <div className="flex items-center space-x-2 text-indigo-700 font-bold">
                         <Sparkles className="w-4 h-4 shrink-0 text-indigo-500" />
-                        <span>공고문 바로접속 안내</span>
+                        <span>실시간 포털 수집 및 바로접속 안내</span>
                       </div>
                       <p className="text-neutral-600 text-[11px] leading-relaxed">
-                        IRIS, NTIS 등 정부 R&D 포털은 외부 Referer를 차단하는 경우가 많습니다.
-                        <strong> [공고문 바로접속]</strong> 버튼은 Referer 없이 상세 페이지로 이동하는 서버 게이트웨이(<code className="text-[10px] bg-white px-1 rounded">/api/open</code>)를 경유합니다.
-                        그래도 접속이 안 되면 <strong>[세부 URL 복사]</strong> 후 주소창에 직접 붙여넣거나, <strong>[제목 복사 &amp; 포털 검색]</strong>으로 공식 목록에서 찾아보세요.
+                        좌측 <strong>연동 및 보정 포털 리스트</strong>의 각 사이트에서 추출 조건(기간·키워드)에 맞는 공고를 실시간 수집합니다.
+                        <strong> [공고문 바로접속]</strong>은 포털에서 파싱한 <strong>실제 상세 페이지 URL</strong>을
+                        Referer 없이 여는 게이트웨이(<code className="text-[10px] bg-white px-1 rounded">/api/open</code>)로 연결합니다.
                       </p>
                     </div>
 

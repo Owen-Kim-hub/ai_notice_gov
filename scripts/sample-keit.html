@@ -1,0 +1,2523 @@
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<meta charset="UTF-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1"/>
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link type="text/css" rel="stylesheet" href="/sromeweb/css/reset.css?_v=20260608_2"/>
+<link type="text/css" rel="stylesheet" href="/sromeweb/css/common.css?_v=20260608_2"/>
+<link type="text/css" rel="stylesheet" href="/sromeweb/css/layout.css?_v=20260608_2"/>
+<link type="text/css" rel="stylesheet" href="/sromeweb/css/header.css?_v=20260608_2"/>
+<link type="text/css" rel="stylesheet" href="/sromeweb/css/sitemap.css?_v=20260608_2"/>
+<link type="text/css" rel="stylesheet" href="/sromeweb/css/footer.css?_v=20260608_2"/>
+<link type="text/css" rel="stylesheet" href="/sromeweb/css/sub.css?_v=20260608_2"/>
+<link type="text/css" rel="stylesheet" href="/sromeweb/css/sub3.css?_v=20260608_2"/>
+<link type="text/css" rel="stylesheet" href="/sromeweb/css/menu.css?_v=20260608_2"/>
+<link type="text/css" rel="stylesheet" href="/sromeweb/css/swiper-bundle.min.css"/>
+<link type="text/css" rel="stylesheet" href="/assets/css/jquery-ui.css"/>
+
+
+
+
+
+<script src="/sromeweb/js/jquery-3.5.1.min.js"></script>
+<script src="/assets/js/jquery-ui.js"></script>
+<script src="/assets/js/jquery.blockUI.js"></script>
+<script src="/assets/js/jquery.serialize-object.js"></script>
+<script src="/assets/js/jquery.tmpl.min.js"></script>
+<script src="/assets/js/jquery.tmplPlus.min.js"></script>
+
+<script src="/assets/js/common_srome.js?_v=20260608_2"></script>
+<script src="/assets/js/common_srome_util.js?_v=20260608_2"></script>
+<script src="/assets/js/common_srome_page.js?_v=20260608_2"></script>
+<script src="/sromeweb/js/menu.js?_v=20260608_2"></script>
+<script src="/sromeweb/js/style.js?_v=20260608_2"></script>
+<script src="/sromeweb/js/swiper-bundle.min.js"></script>
+
+<title>과제공고 | R&D 공고 | 수행</title>
+
+<script>
+var authErrorMsg = $.trim('');
+if (authErrorMsg && authErrorMsg.length) {
+	alert(authErrorMsg);
+	removeQueryParam('authErrorMsg');
+}
+</script>
+
+<!-- 원문다운로드 자료 활용 안내 modal -->
+
+
+
+
+
+
+
+
+<script>
+var atchFileRedgLogList = ''.split(',');
+var paramBlbdId = '';
+var paramBlltSeq = '';
+
+$(function() {
+	$('.modal_close[data-target=atchFileRedgLogModal]').on('click', function() {
+		f_atchFileRedgLogInit();
+	});
+});
+
+function f_checkAtchFileRedgLog(redgWaySe, atchDocId, atchFileId, pdfEdmsId) {
+	if (!paramBlltSeq || !atchFileId) return false;
+	let result = false;
+	$.ajax({
+		type: 'POST',
+		url: '/srome/biz/common/bllt/retrieveAtchFileHistRegYn.do',
+		dataType: 'json',
+		async: false,
+		data: { blltSeq: paramBlltSeq },
+		success: function(data) {
+			if (data.atchFileHistRegYn === 'Y') {
+				$('#logAtchDocId').val(atchDocId);
+				$('#logAtchFileId').val(atchFileId);
+				$('#logPdfEdmsId').val(pdfEdmsId);
+				$('#redgWaySe').val(redgWaySe || '');
+				f_openModalPopup('atchFileRedgLogModal');
+				result = true;
+			}
+		}
+	});
+	return result;
+}
+
+function f_atchFileRedgLogSubmit() {
+	const param = {
+		atchFileRedgLogYn: $('#atchFileRedgLogYn').is(':checked') ? 'Y' : 'N',
+		redgAtchFileId: $('#logAtchFileId').val(),
+		redgWaySe: $('#redgWaySe').val(),
+		redgBlbdId: paramBlbdId,
+		redgBlltSeq: paramBlltSeq,
+		dataUsePurs: $('[name=dataUsePurs]:checked').map(function() { return this.value }).get().join(':'),
+		crSe: $('[name=crSe]:checked').val()
+	};
+	
+	if (param.atchFileRedgLogYn === 'N') {
+		$('#atchFileRedgLogYn').focus();
+		alert('이용조건에 동의함을 체크해 주세요.');
+		return;
+	}
+	
+	if (!param.dataUsePurs) {
+		$('[name=dataUsePurs]').first().focus();
+		alert('자료사용목적을 선택해주세요.');
+		return;
+	}
+	
+	if (!param.crSe) {
+		$('[name=crSe]').first().focus();
+		alert('직업군을 선택해주세요.');
+		return;
+	}
+	
+	$.ajax({
+		type: 'POST',
+		url: '/srome/biz/common/bllt/registerAtchFileRedgLog.do',
+		dataType: 'json',
+		loadingYN: 'N',
+		data: param,
+		success: function(data) {
+			if (param.redgWaySe === 'NL8001') {
+				location.href = '/srome/biz/common/file/downloadAtchItechFile.do'
+					+ '?atchDocId=' + encodeURIComponent($('#logAtchDocId').val())
+					+ '&atchFileId=' + encodeURIComponent($('#logAtchFileId').val());
+			} else if (param.redgWaySe === 'NL8002') {
+				const pdfParam = {
+					//permission : 'p',
+					elementId : $('#logPdfEdmsId').val()
+				};
+				f_pdfView('view', pdfParam, 1000, 800);
+			}
+		},
+		complete: function() {
+			f_atchFileRedgLogInit();
+			f_closeModalPopup('atchFileRedgLogModal');
+		}
+	});
+}
+
+function f_atchFileRedgLogInit() {
+	$('#logAtchDocId').val('');
+	$('#logAtchFileId').val('');
+	$('#logPdfEdmsId').val('');
+	$('#redgWaySe').val('');
+	$('#atchFileRedgLogYn').prop('checked', false);
+	$('[name=dataUsePurs]').prop('checked', false);
+	$('[name=crSe]').prop('checked', false);
+}
+</script>
+
+<!-- 게시물 세부 관리 항목 modal -->
+<div class="modal_popup" id="atchFileRedgLogModal">
+	<div class="modal_wrap" style="min-width:750px">
+		<input type="hidden" id="redgWaySe" name="redgWaySe"/>
+		<input type="hidden" id="logAtchDocId" name="logAtchDocId"/>
+		<input type="hidden" id="logAtchFileId" name="logAtchFileId"/>
+		<input type="hidden" id="logPdfEdmsId" name="logPdfEdmsId"/>
+		
+		<div class="modal_title">
+			<h1 class="title">원문다운로드 자료 활용 안내</h1>
+			<a href="javascript:void(0);" class="modal_close" data-target="atchFileRedgLogModal">닫기</a>
+		</div>
+		
+		<div class="modal_body">
+		
+			<div class="table">
+				<table class="vertical">
+					<caption>상담시간, 상담유형, 성명, 연락처, 이메일, 소속기관, 내용으로 이루어진 신청하기 형식입니다.</caption>
+					<colgroup>
+						<col style="width: 15%; min-width: 120px;">
+						<col style="width: auto;">
+					</colgroup>
+					<tbody>
+						<tr>
+							<th scope="row">제목</th>
+							<td>원문다운로드 자료 활용 안내</td>
+						</tr>
+						<tr>
+							<th scope="row">본문</th>
+							<td>
+								<ul>
+									<li>- 한국산업기술기획평가원의 연구보고서를 활용해주심에 감사합니다.</li>
+									<li>- 활용하시는 자료는 한국산업기술기획평가원의 연구성과물로 저작권법에 따라 보호를 받는 저작물입니다.</li>
+									<li>- 자료 다운로드를 위해 아래의 자료 이용 동의서 및 사용목적 등에 응답 부탁드립니다.</li>
+									<li>- 응답하신 내용은 한국산업기술기획평가원의 연구보고서 활용 현황분석을 위한 기초자료로 활용됩니다.</li>
+								</ul>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">이용조건동의</th>
+							<td>
+								<ul>
+									<li>- 자료 이용 시, 한국산업기술기획평가원에서 제공하는 저작물을 활용하였음을 명시할 것을 동의합니다.</li>
+									<li>- 본 저작물은 “공공누리 4유형” 조건에 따라 활용할 것을 동의합니다.</li>
+									<li>- 무단전재와 무단복제를 금하며, 이 자료의 전부 또는 일부를 인용하려면 반드시 출처를 표기할 것이며, 영리 목적으로 활용하지 않을 것에 동의합니다.</li>
+									<li class="mt10">
+										<label for="atchFileRedgLogYn">
+											<input type="checkbox" id="atchFileRedgLogYn"/>
+											<span>이용조건을 확인하였으며, 이에 동의합니다.</span>
+										</label>
+									</li>
+								</ul>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">자료사용목적</th>
+							<td>
+								
+									<label for="dataUsePurs0" class="mr5">
+										<input type="checkbox" id="dataUsePurs0" name="dataUsePurs" value="XI1001"/>
+										<span>정책개발</span>
+									</label>
+								
+									<label for="dataUsePurs1" class="mr5">
+										<input type="checkbox" id="dataUsePurs1" name="dataUsePurs" value="XI1002"/>
+										<span>사업기획</span>
+									</label>
+								
+									<label for="dataUsePurs2" class="mr5">
+										<input type="checkbox" id="dataUsePurs2" name="dataUsePurs" value="XI1003"/>
+										<span>학술연구</span>
+									</label>
+								
+									<label for="dataUsePurs3" class="mr5">
+										<input type="checkbox" id="dataUsePurs3" name="dataUsePurs" value="XI1004"/>
+										<span>교육/세미나</span>
+									</label>
+								
+									<label for="dataUsePurs4" class="mr5">
+										<input type="checkbox" id="dataUsePurs4" name="dataUsePurs" value="XI1005"/>
+										<span>출판</span>
+									</label>
+								
+									<label for="dataUsePurs5" class="mr5">
+										<input type="checkbox" id="dataUsePurs5" name="dataUsePurs" value="XI1999"/>
+										<span>기타</span>
+									</label>
+								
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">직업군선택</th>
+							<td>
+								
+									<label for="crSe0" class="mr5">
+										<input type="radio" id="crSe0" name="crSe" value="XI2001"/>
+										<span>정부</span>
+									</label>
+									
+								
+									<label for="crSe1" class="mr5">
+										<input type="radio" id="crSe1" name="crSe" value="XI2002"/>
+										<span>공공기관</span>
+									</label>
+									
+								
+									<label for="crSe2" class="mr5">
+										<input type="radio" id="crSe2" name="crSe" value="XI2003"/>
+										<span>출연연</span>
+									</label>
+									
+								
+									<label for="crSe3" class="mr5">
+										<input type="radio" id="crSe3" name="crSe" value="XI2004"/>
+										<span>대기업</span>
+									</label>
+									
+								
+									<label for="crSe4" class="mr5">
+										<input type="radio" id="crSe4" name="crSe" value="XI2005"/>
+										<span>중견기업</span>
+									</label>
+									
+								
+									<label for="crSe5" class="mr5">
+										<input type="radio" id="crSe5" name="crSe" value="XI2006"/>
+										<span>중소벤처</span>
+									</label>
+									
+								
+									<label for="crSe6" class="mr5">
+										<input type="radio" id="crSe6" name="crSe" value="XI2007"/>
+										<span>언론사</span>
+									</label>
+									<br/>
+								
+									<label for="crSe7" class="mr5">
+										<input type="radio" id="crSe7" name="crSe" value="XI2008"/>
+										<span>교육기관/도서관</span>
+									</label>
+									
+								
+									<label for="crSe8" class="mr5">
+										<input type="radio" id="crSe8" name="crSe" value="XI2009"/>
+										<span>교육/학술단체</span>
+									</label>
+									
+								
+									<label for="crSe9" class="mr5">
+										<input type="radio" id="crSe9" name="crSe" value="XI2010"/>
+										<span>교수</span>
+									</label>
+									
+								
+									<label for="crSe10" class="mr5">
+										<input type="radio" id="crSe10" name="crSe" value="XI2011"/>
+										<span>학생</span>
+									</label>
+									
+								
+									<label for="crSe11" class="mr5">
+										<input type="radio" id="crSe11" name="crSe" value="XI2012"/>
+										<span>전문직</span>
+									</label>
+									
+								
+									<label for="crSe12" class="mr5">
+										<input type="radio" id="crSe12" name="crSe" value="XI2999"/>
+										<span>기타</span>
+									</label>
+									
+								
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			
+		</div>
+		
+		<div class="modal_foot">
+			<button id="btnSave" type="button" class="btn badge red lg" onclick="f_atchFileRedgLogSubmit()">제출</button>
+			<a href="javascript:void(0);" class="btn confirm modal_close" data-target="atchFileRedgLogModal">닫기</a>
+		</div>
+	</div>
+</div>
+</head>
+<body>
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- 구글 애널리틱스 api 호출 -->
+
+
+
+
+
+
+
+<script>
+	(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+		new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+		j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+		'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+	})(window,document,'script','dataLayer','GTM-TRXGZ6SK');
+</script>
+
+<script type="text/javascript">
+	(function(c,l,a,r,i,t,y){
+		c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+		t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+		y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+	})(window, document, "clarity", "script", "nxalftnn8h");
+</script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-5D9BTX5306"></script>
+<script>
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+
+	gtag('config', 'G-5D9BTX5306');
+</script>
+
+<!-- Google Tag Manager (noscript) -->
+<noscript>
+	<iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TRXGZ6SK" height="0" width="0" style="display:none;visibility:hidden"></iframe>
+</noscript>
+<!-- End Google Tag Manager (noscript) --> 
+
+<!-- Google 번역 api 호출 -->
+<!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script> -->
+
+
+
+
+
+<!-- Google 번역 툴바 안보이게 -->
+<style type="text/css">
+	.skiptranslate {display:none}
+</style>
+
+
+
+<div id="skipNav">
+	<ul>
+		<li><a href="#content">본문 바로가기</a></li>
+		<li><a href="#snb">페이지이동 바로가기</a></li>
+		<li><a href="#sitemap">사이트맵 바로가기</a></li>
+	</ul>
+</div>
+
+<!-- header:S -->
+<header>
+	<div id="sromePopup">
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<style>.banner-close{z-index:1;}.top-banner{margin:0 auto;}.bc-white{background-color:white;}</style>
+
+<script>
+var windowPopup = new Object();
+var parser = new DOMParser();
+var classList = {};
+
+$(function() {
+	requestAnimationFrame(function() {
+		// alt 값 처리
+		$('.popup-img').each(function(idx, item) {
+			$(item).attr('alt', parser.parseFromString($(item).attr('alt'), 'text/html').body.textContent.replace(/[\r\n]+/g, ' '));
+		});
+		
+		$('a[href^="java:void(0)"]').attr('href', 'javascript:void(0)');
+
+		/////////////////////// WINDOW /////////////////////////
+		$('[id^=windowPop]').each(function(idx, item) {
+			var popupId = $(item).attr('id');
+			var blltSeq = $(item).data('seq');
+			var options = $(item).data('options');
+			options = options ? JSON.parse(parser.parseFromString(options, 'text/html').body.textContent)
+							  : {'width': 500, 'height': 500};
+			windowPopup[popupId] = window.open('about:blank', popupId, f_optionToString(options));
+
+			var popup = windowPopup[popupId].document;
+			$(popup).find('html').attr('lang', 'ko');
+			$(popup).find('head').html($('head').eq(0).find(':not(script)').clone());
+			$(popup).find('head title').text($('#' + popupId).find('#title' + blltSeq).val());
+			$(popup).find('body').html($('#' + popupId).html());
+			$(popup).find('body .popupCont').css('margin-bottom', '66px');
+			$(popup).find('body .popupFooter').css({'position':'fixed', 'z-index':'999', 'width':'100%', 'bottom': 0, 'border-top':'1px solid #eee', 'background':'#f9f9f9', 'display':'flex', 'padding':'12px 24px'});
+			$(popup).find('body .popupFooter .btn').css({'font-size':'0.937rem', 'padding':'0.75rem 2rem'});
+		});
+		/////////////////////// WINDOW /////////////////////////
+		
+		/////////////////////// LAYER //////////////////////////
+		$('[id^=layerPop]').each(function(i, e) {
+			var $e = $(e);
+			var id = $e.attr('id');
+			var blltSeq = $e.data('blltSeq');
+			var clSrid = $e.data('clSrid');
+			$e.find('.modal_foot label[for^=checkbox]').attr('for', `checkbox-${blltSeq}`);
+			$e.find('.modal_foot input[type^=checkbox]').attr('id', `checkbox-${blltSeq}`);
+			$e.find('.modal_foot input[type^=checkbox]').attr('onchange', `f_todayPopupClose('${clSrid}', '${blltSeq}');`);
+			$e.find('.modal_popup').attr('id', id);
+			$e.find('.modal_close').attr('onclick', `f_popupClose('${clSrid}', '${blltSeq}')`);
+			classList[id] = $e.find('.modal_popup').attr('class');
+			$e.removeAttr('id');
+		});
+		
+		var $layerPop = $('.modal_popup[id^=layerPop]');
+		if ($layerPop.length === 2) {
+			$layerPop.eq(0).before('<div id="modal_group" class="modal_popup notice img group" style="display: block;"><div class="modal_wrap"><div class="slider-track"></div></div></div>');
+			$layerPop.each(function(i, e) {
+				const $target = $(this).find('.modal_wrap').attr('class', 'modal_slide').attr('id', $(this).attr('id')).removeAttr('style').clone();
+				$('#modal_group .slider-track').append($target);
+			});
+			$layerPop.remove();
+		} else {
+			$layerPop.show();
+		}
+		/////////////////////// LAYER //////////////////////////
+	});
+
+	var $banner = $('#banner');
+	var $bannerDummy = $('[id^=banner_dummy]');
+	if ($bannerDummy.length > 0) {
+		$bannerDummy.remove();
+		$banner.show();
+	} else {
+		$banner.remove();
+	}
+});
+
+/* URL 링크 이동 */
+function f_goURL(cntnUrlAddr, clSrid, blltSeq) {
+	if (cntnUrlAddr) {
+		if (cntnUrlAddr.indexOf(location.origin) >= 0 || cntnUrlAddr.startsWith('/')) {
+			location.href = cntnUrlAddr;
+			f_popupClose(clSrid, blltSeq);
+		} else {
+			window.open(cntnUrlAddr);
+		}
+	}
+}
+
+/* 팝업 or 배너 종료 */
+function f_popupClose(clSrid, blltSeq) {
+	if (clSrid === 'C51010610000000') { // 레이어
+		$('#layerPop' + blltSeq).remove();
+
+		/* Layer Popup 2개 일 경우 처리 */
+		var $modalGroup = $('#modal_group');
+		if ($modalGroup.length) {
+			const modal_id = $modalGroup.find('.slider-track .modal_slide').attr('id');
+			$modalGroup.removeClass('img').removeClass('group').addClass('notice');
+			$modalGroup.find('.modal_wrap').html($modalGroup.find('.slider-track .modal_slide').html()).css('margin', '0 auto');
+			$modalGroup.find('.slider-track').remove();
+			$modalGroup.attr('id', modal_id);
+			$modalGroup.attr('class', classList[modal_id]);
+		}
+	} else if (clSrid === 'C51010620000000') { // WINDOW 팝업
+		windowPopup['windowPop' + blltSeq].close();
+	} else if (clSrid === 'C51010630000000') { // 배너
+		$('.banner-wrap').remove();
+	}
+}
+
+/* 오늘 하루 보지않기 */
+function f_todayPopupClose(clSrid, blltSeq) {
+	if (clSrid === 'C51010610000000' || clSrid === 'C51010620000000') { // 레이어 or 일반
+		f_setCookie('closedPopup' + blltSeq, 'Y', 1);
+	} else if (clSrid === 'C51010630000000') { // 배너
+		f_setCookie('closedBanner', 'Y', 1);
+	}
+	f_popupClose(clSrid, blltSeq);
+}
+</script>
+
+
+
+	
+		
+
+		
+			
+			
+			
+			
+			
+			
+				
+				
+				 
+					
+				
+			
+			
+			
+			
+
+			
+		
+	
+
+
+
+
+
+
+
+
+
+	</div>
+
+	<div id="user">
+		<div class="section col">
+			<div class="login_group">
+				<ul class="login_on" style="justify-content: flex-end;">
+					<!-- Languages -->
+					<li class="lang">
+						
+						
+						<div id="google_translate_element" class="hd_lang" style="display: none;"></div>
+						
+						
+						<label for="language-select" class="sr-only">선택항목명</label>
+						<select id="language-select" class="lang_btn p0 fs-xs">
+							<option value="ko">한국어(Korean)</option>
+							<option value="en">영어(English)</option>
+						</select>
+
+						
+						
+						<script type="text/javascript">
+							/* 구글 번역 초기화 */
+							function googleTranslateElementInit() {
+								new google.translate.TranslateElement({
+									pageLanguage: ''
+									,autoDisplay: true}, 'google_translate_element');
+
+								$('body').removeAttr('style');
+							}
+						</script>
+						<script type="text/javascript">
+							/* 구글 번역 콤보리스트에 선택한 언어를 적용해 변경 이벤트를 발생시키는 코드  */
+							document.getElementById('language-select').addEventListener('change', function(e){
+								var selectedLang = this.value;
+								const gtcombo = document.querySelector('.goog-te-combo');
+
+								if(gtcombo == null){
+									console.log("Error: Could not find Google translate Combolist.");
+									return false;
+								}
+
+								if (selectedLang === 'ko') {
+									selectedLang = '';
+									document.cookie = 'googtrans=; expires=Thu, 01 Jan 1999 00:00:10 GMT; path=/';
+									localStorage.setItem('language-select', 'ko');
+									reloadPage();
+								}
+
+								if (selectedLang === 'en') {
+									selectedLang = 'en';
+									localStorage.setItem('language-select', 'en');
+								}
+
+								gtcombo.value = selectedLang;
+								gtcombo.dispatchEvent(new Event('change'));
+							});
+
+							window.addEventListener('load', function(){
+								let lang = localStorage.getItem('language-select');
+
+								if (lang != null) {
+									$("#language-select").val(lang);
+								}
+							});
+
+							function reloadPage(){
+								if(document.querySelector('.goog-te-combo')){
+									window.top.location.reload(true);
+								}else{
+									setTimeout(reloadPage, 200);
+								}
+							}
+						</script>
+						<!-- Google 번역 관련 스크립트 -->
+						<script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+						
+						
+					</li>
+					
+						<li><a href="javascript:void(0);" onclick="javascript:f_login();">로그인</a></li>
+						<li><a href="javascript:void(0);" onclick="javascript:f_memJoin('INIT');">회원가입</a></li>
+					
+
+					
+					
+					
+				</ul>
+			</div>
+		</div>
+	</div>
+	<div id="gnb">
+		<div class="section col">
+			<h1>
+				<a href="javascript:void(0);" onclick="javascript:f_moveMain();">
+					<img src="/sromeweb/images/svg/logo-s_rome.svg" alt="S-Rome 로고">
+				</a>
+				<!--
+				<a href="javascript:void(0);" onclick="javascript:f_logoClickSubMain();">
+					<span class="depth0"></span>
+					<span class="sr-only">서브 홈</span>
+				</a>
+				-->
+			</h1>
+
+			<div class="gnb_area">
+				<ul class="depth1" id="gXPG000000000">
+					
+						
+						
+							<!-- depth 1 : 분석 -->
+							<li class="dep1_li" id="gXPG100000000">
+								<a href="javascript:void(0);" onclick="f_subMain('A');">분석</a>
+								<div class="gnb_sub" style="display: none;">
+									<div class="center">
+										<!-- 분석 : 타이틀, 소개  -->
+										<div class="intr intr01">
+											<div class="d_f f_wr w100p f_g_10 a_i_t">
+												<span class="w100p inline_block tc">Analysis</span>
+												<p class="w100p tc">분석</p>
+											</div>
+											<p class="desc">
+												연구자에게 꼭 필요한<br>분석 서비스를 제공합니다.
+											</p>
+										</div>
+										<!-- depth 2  -->
+										<div class="depth2"></div>
+									</div>
+								</div>
+							</li>
+
+							<!-- depth 1 : 수행 -->
+							<li class="dep1_li" id="gXPG200000000">
+								<a href="javascript:void(0);" onclick="f_subMain('R');">수행</a>
+								<div class="gnb_sub" style="display: none;">
+									<div class="center">
+										<!-- 수행 : 타이틀, 소개  -->
+										<div class="intr intr02">
+											<div class="d_f f_wr w100p f_g_10 a_i_t">
+												<span class="w100p inline_block tc">R&amp;D Support</span>
+												<p class="w100p tc">수행</p>
+											</div>
+											<p class="desc">
+												산업기술 R&amp;D<br>과제 수행 서비스를 제공합니다.
+											</p>
+										</div>
+										<!-- depth 2  -->
+										<div class="depth2 f_wr"></div>
+									</div>
+								</div>
+							</li>
+
+							<!-- depth 1 : 협업 -->
+							<li class="dep1_li" id="gXPG300000000">
+								<a href="javascript:void(0);" onclick="f_subMain('C');">협업</a>
+								<div class="gnb_sub" style="display: none;">
+									<div class="center">
+										<!-- 협업 : 타이틀, 소개  -->
+										<div class="intr intr03">
+											<div class="d_f f_wr w100p f_g_10 a_i_t">
+												<span class="w100p inline_block tc">Collaboration</span>
+												<p class="w100p tc">협업</p>
+											</div>
+											<p class="desc">
+												다양한 연구자가 모인 산업기술<br>R&amp;D 커뮤니티에 참여해보세요.
+											</p>
+										</div>
+										<!-- depth 2  -->
+										<div class="depth2"></div>
+									</div>
+								</div>
+							</li>
+
+							<!-- depth 1 : 정보 -->
+							<li class="dep1_li" id="gXPG400000000">
+								<a href="javascript:void(0);" onclick="f_subMain('I');">정보</a>
+								<div class="gnb_sub" style="display: none;">
+									<div class="center">
+										<!-- 정보 : 타이틀, 소개  -->
+										<div class="intr intr04">
+											<div class="d_f f_wr w100p f_g_10 a_i_t">
+												<span class="w100p inline_block tc">Information</span>
+												<p class="w100p tc">정보</p>
+											</div>
+											<p class="desc">
+												S ROME의 정보를 모두 모아,<br>다양한 콘텐츠를 확인해보세요.
+											</p>
+										</div>
+										<!-- depth 2  -->
+										<div class="depth2"></div>
+									</div>
+								</div>
+							</li>
+
+							<!-- depth 1 : 고객지원 -->
+							<li class="dep1_li" id="gXPG500000000">
+								<a href="javascript:void(0);">고객지원</a>
+								<div class="gnb_sub" style="display: none;">
+									<div class="center">
+										<!-- 고객지원 : 타이틀, 소개  -->
+										<div class="intr intr05">
+											<div class="d_f f_wr w100p f_g_10 a_i_t">
+												<span class="w100p inline_block tc">CS Center</span>
+												<p class="w100p tc">고객지원</p>
+											</div>
+											<p class="desc">
+												srome 이용의 불편함을<br>풀어 드립니다.
+											</p>
+										</div>
+										<!-- depth 2  -->
+										<div class="depth2"></div>
+									</div>
+								</div>
+							</li>
+
+							<!-- depth 1 : 마이페이지 -->
+							<li class="dep1_li" id="gXPG600000000">
+								<a href="javascript:void(0);">마이페이지</a>
+								<div class="gnb_sub" style="display: none;">
+									<div class="center">
+										<!--  : 타이틀, 소개  -->
+										<div class="intr intr06">
+											<div class="d_f f_wr w100p f_g_10 a_i_t">
+												<span class="w100p inline_block tc">My Page</span>
+												<p class="w100p tc">마이페이지</p>
+											</div>
+											<p class="desc">개인정보를 관리하실 수 있습니다.</p>
+										</div>
+										<div class="depth2"></div>
+									</div>
+								</div>
+							</li>
+						
+					
+				</ul>
+			</div>
+
+			<!-- 202506 리뉴얼 : 전체검색 추가 -->		
+			
+
+
+
+
+
+
+
+<script>
+var menuMap;
+
+function f_lockScroll() {
+	document.documentElement.scrollTop = 0;
+	document.body.scrollTop = 0;
+	document.body.style.overflow = 'hidden';
+}
+
+function f_unlockScroll() {
+	document.body.style.overflow = 'visible';
+}
+
+(function() {
+	f_lockScroll();
+})();
+
+$(function() {
+	menus = JSON.parse(sessionStorage.getItem('menus'));
+	menuMap = menus.reduce(function(acc, e) {
+		e.nmPath = e.nmPath.split('/').slice(1).join(' > ');
+		acc[e.prgmNm] = e;
+		return acc;
+	}, {});
+
+	// 통합검색 체크
+	var gnrlSrchKwrd = sessionStorage.getItem('gnrlSrchKwrd'); // 키워드
+	var gnrlSrchPage = sessionStorage.getItem('gnrlSrchPage'); // 통합검색한 페이지
+	var gnrlSrchUser = sessionStorage.getItem('gnrlSrchUser'); // 통합검색한 사용자
+	var gnrlSrchOpen = sessionStorage.getItem('gnrlSrchOpen'); // 통합검색 UI 열림 상태
+
+	if (gnrlSrchKwrd
+		&& gnrlSrchPage.includes(location.pathname)
+		&& gnrlSrchUser === 'C4EBEC33ACD411FA98D17EFF89BCB783.tomcat1'
+		&& gnrlSrchOpen === 'Y'
+	) { // 메인페이지 통합검색, 통합검색 UI 열린 상태로 새로고침
+		document.querySelector('.srch_area').style.display = 'block';
+		document.querySelector('#gnrlSrchKwrd').value = gnrlSrchKwrd;
+		f_gnrlSrch();
+	} else {
+		f_unlockScroll();
+
+		sessionStorage.removeItem('gnrlSrchKwrd');
+		sessionStorage.removeItem('gnrlSrchPage');
+		sessionStorage.removeItem('gnrlSrchUser');
+		sessionStorage.removeItem('gnrlSrchOpen');
+
+		document.querySelector('#gnrlSrchKwrd').value = '';
+		document.querySelector('.total_srch_result').innerHtml = '';
+		document.querySelector('.srch_area').classList.add('only_srch');
+		document.body.style.overflow = 'visible';
+	}
+
+	// 실시간 검색어 조회
+	//f_retrieveSuggest();
+
+	$('.gnb_btn_srch, .btn_cls').on('click', function() {
+		sessionStorage.setItem('gnrlSrchOpen', $('.srch_area').is(':visible') ? 'Y' : 'N');
+	});
+
+	$('#sitemap-menu').on('click', function() {
+		$('.btn_cls').trigger('click');
+	});
+});
+
+// 실시간 검색어
+function f_retrieveSuggest() {
+	var params = {
+		url: '/srome/search/popquery',
+		label: 'srome_total_pop'
+	};
+
+	var element = null;
+	f_ajaxLoading(params, element, function(apiResult) {
+		var dataList = apiResult.result.dataList.slice(0, 5);
+		var html = dataList.reduce(function(acc, data) {
+			acc += `<a href="javascript:void(0);" class="sg_item" onclick="f_gnrlSrch('${data.query}')">${data.query}</a>`;
+			return acc;
+		}, '<p>실시간 검색어</p>');
+
+		document.querySelector('.suggest').insertAdjacentHTML('beforeend', html);
+	});
+}
+
+// 통합검색
+function f_gnrlSrch(kwrd, clseqMid, page, callback) {
+	const kwrdSelector = document.querySelector('#gnrlSrchKwrd');
+	if (kwrd) kwrdSelector.value = kwrd;
+
+	var gnrlSrchKwrd = kwrdSelector.value.trim();
+	sessionStorage.setItem('gnrlSrchKwrd', gnrlSrchKwrd);
+	sessionStorage.setItem('gnrlSrchPage', location.pathname);
+	sessionStorage.setItem('gnrlSrchUser', 'C4EBEC33ACD411FA98D17EFF89BCB783.tomcat1');
+
+	if (!gnrlSrchKwrd) {
+		alert('검색어를 입력해주세요.');
+		return false;
+	}
+
+	f_lockScroll();
+
+	// 검색어 로깅 API 호출
+	f_setKeyword(gnrlSrchKwrd, 'srome_total_pop');
+
+	var html = ``;
+	var totalCount = 0;
+	var isInit = (!clseqMid && (!page || page === 1));
+
+	if (isInit) {
+		document.querySelector('.total_srch_result .result_list').innerHTML = '';
+		document.querySelector('.srch_area').classList.remove('only_srch');
+	}
+
+	var clseqMidArr = clseqMid ? [clseqMid] : [ '메뉴', 'R&D 공고', '과제검색', '규정 및 자료', '공지사항', 'FAQ' ];
+	var element = document.querySelector('.total_srch_result .result_list');
+	var loadingElement = isInit ? element : null;
+
+	// API 결과 처리 S
+	var apiTargetCnt = clseqMidArr.length;
+	var apiSuccessCnt = 0;
+	var apiSuccess = function() {
+		if (++apiSuccessCnt === apiTargetCnt) {
+			if (isInit) {
+				$('#resultCnt').text(f_addComma(totalCount));
+			}
+		}
+	}
+	// API 결과 처리 E
+	
+	if (isInit) {
+		document.querySelector('.total_srch_result .result_txt').innerHTML = `‘<span id="resultKwrd" class="emph">${gnrlSrchKwrd}</span>’ 검색결과는 총 <span id="resultCnt">0</span>건 입니다.`;
+	}
+
+	clseqMidArr.forEach(function(mid, index) {
+		var isMenu = mid === '메뉴';
+		var sort = mid === '메뉴' ? 1 : Number(document.querySelector('[name=gnrlSrchSort]:checked').value); // 메뉴는 무조건 정확도 순
+		var params = {
+			url: '/srome/search/total-keyword',
+			keyword: gnrlSrchKwrd,
+			clseqMid: mid,
+			size: 3,
+			page: NVL(page, 1),
+			sort: sort,
+			paginationYn: 'N'
+		};
+
+		if (isInit) {
+			var menuInfo = menuMap[mid];
+			var nmPath = menuInfo ? menuInfo.nmPath : mid;
+			if (mid === '규정 및 자료') {
+				replaceNm = '매뉴얼';
+				nmPath = nmPath.replace(mid, replaceNm);
+			}
+
+			element.insertAdjacentHTML('beforeend', 
+				`<div class="cate_box" data-clseq-mid="${mid}">
+					<a class="cate_top">
+						<p class="cate">${nmPath}</p>
+						<p class="rs_num">검색결과 0건</p>
+						<span class="arrow" style="display:none;"></span>
+					</a>
+					<div class="cate_btm">
+						<div class="content"></div>
+						<div class="more" style="display:none;">
+							<a href="javascript:void(0);" onclick="f_gnrlSrchShowNext(this)">더보기<span>+</span></a>
+						</div>
+					</div>
+				</div>`);
+
+		}
+
+		f_ajaxLoading(params, loadingElement, function(result) {
+			totalCount += result?.total_count ?? 0;
+
+			if ( (result?.total_count ?? 0) === 0) {
+				apiTargetCnt--;
+				return;
+			}
+
+	 		var data = result.list.reduce(function(acc, row) {
+	 			if (!acc[row.clseqMid]) acc[row.clseqMid] = [];
+	 			acc[row.clseqMid].push(row);
+	 			return acc;
+			}, {});
+
+	 		// 중메뉴 순서에 맞게 처리
+	 		Object.keys(result.count).forEach(function(menuNm) {
+	 			if (!data[menuNm] || !data[menuNm].length) return;
+
+	 			var rows = data[menuNm];
+	 			var htmlContents = rows.reduce(function(acc, row, idx) {
+	 				var files = (row.file || []).reduce(function(acc2, row2, idx2) {
+	 					acc2 += `<li><p>${row2.file_nm}</p></li>`;
+						return acc2;
+	 				}, ``);
+	 				if (files) files = `<ul class="add_file">${files}</ul>`;
+
+	 				var menuInfo;
+	 				if (!isMenu) { // 통합검색 결과 ['R&D 공고', '과제검색', '매뉴얼', '공지사항', 'FAQ']
+		 				menuInfo = menuMap[row.clseqMid];
+	 				} else {  // 통합검색 결과 ['메뉴']
+	 					menuInfo = { nmPath: row.clseqMain + ' > ' + row.clseqSub, prgmUrlAddr: row.url };
+	 				}
+
+ 					if (!menuInfo.prgmUrlAddr.startsWith(contextRoot) && !f_isLink(menuInfo.prgmUrlAddr)) {
+ 						menuInfo.prgmUrlAddr = contextRoot + menuInfo.prgmUrlAddr;
+ 					}
+
+ 					menuInfo.prgmUrlAddr = f_replace(menuInfo.prgmUrlAddr);
+ 					row.url = f_replace(row.url);
+
+	 				acc +=
+	 					`<div class="cate_li">
+		 					<div class="li_top">
+		 						<div class="route">
+		 							<span class="tag">${row.clseqMid}</span>
+		 							<a href='javascript:f_goMenu("${menuInfo.prgmUrlAddr}")'>${menuInfo.nmPath}</a>
+		 						</div>
+		 						<div class="info" ${ row.clseqMid === '메뉴' ? 'style="display:none;"' : '' }><span>${NVL(row.frstRegDt, '')}</span></div>
+		 					</div>
+
+		 					<div class="cont">
+		 						<a href='javascript:f_goMenu("${row.url}")' class="tit">
+		 							${ !isMenu ? f_highlight(row.tl, gnrlSrchKwrd) : f_highlight(menuInfo.nmPath.split(' > ').slice(-1)[0], gnrlSrchKwrd) }
+	 							</a>
+
+	 							${ !isMenu ? `<div class="txt">${f_highlight(row.cn, gnrlSrchKwrd)}</div>` : '' }
+		 					</div>
+
+		 					${files}
+		 				</div>`;
+
+		 			return acc;
+	 			}, ``);
+
+ 				var selector = document.querySelector(`[data-clseq-mid="${menuNm}"]`);
+	 			if (isInit) {
+	 				var menuInfo;
+	 				if (!isMenu) { // 통합검색 결과 ['R&D 공고', '과제검색', '매뉴얼', '공지사항', 'FAQ']
+		 				menuInfo = menuMap[menuNm];
+	 				} else { // 통합검색 결과 ['메뉴']
+	 					menuInfo = { prgmNm: menuNm, nmPath: menuNm };
+	 				}
+
+	 				// 검색결과 입력
+	 				selector.querySelector('.cate').innerHTML = menuInfo.nmPath;
+	 				selector.querySelector('.rs_num').innerHTML = `검색결과 ${f_addComma(result.total_count)}건`;
+	 				selector.querySelector('.content').innerHTML = htmlContents;
+	 				selector.querySelector('.arrow').style.display = 'block';
+
+		 			if (result.total_count > 3) { // 더보기 hide
+		 				selector.querySelector('.more').removeAttribute('style');
+	 				}
+	 			} else {
+	 				selector.querySelector('.content').insertAdjacentHTML('beforeend', htmlContents);
+	 			}
+	 		});
+
+			apiSuccess();
+
+			callback && callback(result);
+
+			// 규정 및 자료 => 매뉴얼 변경
+			if (mid === '규정 및 자료') {
+				var replaceNm = '매뉴얼';
+				var menuInfo = menuMap[replaceNm];
+				var prgmUrlAddr = menuInfo.prgmUrlAddr;
+				var nmPath = menuInfo.nmPath.split(' > ');
+				nmPath.splice(1, 1);
+				nmPath = nmPath.join(' > ');
+
+				var selector = document.querySelector(`[data-clseq-mid="${mid}"]`);
+				selector.querySelector('.cate').innerHTML = nmPath;
+				Array.from(selector.querySelectorAll('.tag')).forEach(function(e) {
+					e.innerHTML = replaceNm;
+					e.nextElementSibling.innerHTML = nmPath;
+					e.nextElementSibling.attributes['href'].textContent = `javascript:f_goMenu("${prgmUrlAddr}");`
+				});
+			}
+		});
+	});
+
+	// 통합검색 최하단 여백 추가
+	const empty = document.querySelector('#cate_box_empty');
+	if (!empty) {
+		element.insertAdjacentHTML('beforeend', 
+			`<div class="cate_box" id="cate_box_empty">
+				<div class="cate_btm">
+					<div class="more"></div>
+				</div>
+			</div>`);
+	}
+
+	return true;
+}
+
+// 더보기 (api 재호출)
+function f_gnrlSrchShowNext(element) {
+	var parent = element.closest('.cate_btm');
+	var target = parent.querySelector('.content');
+
+	var gnrlSrchKwrd = document.querySelector('#gnrlSrchKwrd').value.trim();
+	var clseqMid = parent.closest('.cate_box').attributes['data-clseq-mid'].textContent;
+	var page = (target.children.length / 3) + 1;
+
+	var callback = function(result) {
+		if (parent.querySelector('.content').children.length === result.total_count) {
+			element.parentElement.style.display = 'none';
+		}
+	}
+
+	f_gnrlSrch(gnrlSrchKwrd, clseqMid, page, callback);
+}
+
+// 검색 결과 하이라이트 처리
+function f_highlight(str, tgt) {
+	return NVL(str, '').replace(tgt, '<span class="strong">' + tgt + '</span>');
+}
+
+// 숫자 자릿수 추가
+function f_addComma(input) {
+	return input.toString().replace(/,/g, '').replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function f_replace(url) {
+	var map = {
+		'https://srome.keit.re.kr/srome/': '/',
+		'/srome/': '/',
+		'//': '/',
+		'XPG306010000': 'XPG306000000'
+	}
+	Object.keys(map).forEach(function(key) {
+		url = url.replace(new RegExp(key, 'g'), map[key]);
+	});
+	return url;
+}
+</script>
+
+<div class="gnb_right d_f" id="gnrlSrchDiv">
+	<div class="gnb_srch">
+
+		
+			<button type="button" title="검색하기" class="gnb_btn_srch">
+				<span class="sr-only">검색</span>
+			</button>
+		
+		<!-- <div class="srch_area only_srch">	-->
+		<!-- 202506 리뉴얼 -->
+		<div class="srch_area" style="overflow-y:scroll">
+			<div class="center">
+				<div class="srch_top">
+					<div class="srch_box">
+						<label for="gnrlSrchKwrd" class="sr-only">검색어 입력</label>
+						<input id="gnrlSrchKwrd"
+							type="text"
+							placeholder="검색어를 입력하세요"
+							onkeyup="if(event.keyCode === 13) f_gnrlSrch()"
+							value=""/>
+						<input id="gnrlSrchKind" type="hidden" value="sub"/>
+						<button type="button" class="btn_srch" title="검색하기" onclick="f_gnrlSrch()">
+							<span class="sr-only">검색</span>
+						</button>
+					</div>
+					<div class="suggest"></div>
+				</div>
+
+				<div class="total_srch_result">
+					<div class="flex between mb15">
+			 			<p class="result_txt"></p>
+			 			<div class="search">
+							<div class="combo mr5">
+								<div class="form-group">
+									<label for="gnrlSrchSort2" class="label">
+										<input type="radio" id="gnrlSrchSort2" name="gnrlSrchSort" value="2" checked="checked" onchange="f_gnrlSrch()">
+										최신순
+									</label>
+									<label for="gnrlSrchSort1" class="label">
+										<input type="radio" id="gnrlSrchSort1" name="gnrlSrchSort" value="1" onchange="f_gnrlSrch()">
+										정확도순
+									</label>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<div class="result_list"></div>
+				</div>
+
+				<button type="button" title="닫기" class="btn_cls">
+					<span class="sr-only">닫기</span>
+				</button>
+			</div>
+		</div>
+	</div>
+
+	
+		<a href="javascript:void(0);" class="sitemap-menu" id="sitemap-menu">
+			<img src="/sromeweb/images/svg/btn-menu.svg" alt="전체메뉴">
+		</a>
+	
+</div>
+
+			<!-- // 202506 리뉴얼 : 전체검색 추가 -->
+
+		</div>
+	</div>
+	<div id="snb">
+		<div class="section col">
+			<div class="breadcrumb">
+				<a href="javascript:void(0);" class="home" id="dynamic-sub-main" onclick="f_dynamicSubMain();">
+					<img src="/sromeweb/images/svg/ic-home.svg" alt="홈으로 가기">
+				</a>
+
+				<ul>
+					<li class="depth1">
+						<a href="javascript:void(0);" class="combo"></a>
+						<ul></ul>
+					</li>
+
+					<li class="depth2 hide">
+						<a href="javascript:void(0);" class="combo"></a>
+						<ul></ul>
+					</li>
+
+					<li class="depth3 hide">
+						<a href="javascript:void(0);" class="combo"></a>
+						<ul></ul>
+					</li>
+				</ul>
+			</div>
+			<div class="btns">
+				<input type="hidden" id="url" value=""/>
+				<a href="javascript:void(0);" onclick="javascript:f_copyURL();" class="share">
+					<img src="/sromeweb/images/svg/ic-share.svg" alt="페이지 공유하기">
+					<span class="sr-only">페이지 공유하기</span>
+				</a>
+				<a href="javascript:void(0);" onclick="javascript:f_printPage();" class="print">
+					<img src="/sromeweb/images/svg/ic-print.svg" alt="페이지 인쇄하기">
+					<span class="sr-only">페이지 인쇄하기</span>
+				</a>
+			</div>
+		</div>
+	</div>
+</header>
+<!-- header:E -->
+
+
+<script>
+/*************************
+ * 로그인 시간연장: S
+ *************************/
+/* 전역 변수  */ 
+var initMinute;  // 최초 설정할 시간(min)
+var remainSecond;  // 남은시간(sec)
+
+$(function() {
+	clearTime(); // 세션 만료 적용 시간(분)
+
+	if ('Y' == 'N') {
+		setTimer();    // 문서 로드시 타이머 시작
+	}
+
+	// 사이트맵 버튼
+	$("#sitemap-menu").click(function() {
+		const depth0 = document.querySelector('#sitemap .depth0');
+		if (depth0) {
+			depth0.remove();
+		}
+	});
+});
+
+function clearTime() { // 타이머 초기화 함수
+	if('' == "STA003") {
+		initMinute = 60;
+	} else {
+		initMinute = 300;
+	}
+	remainSecond = initMinute * 60;
+}
+
+function sessionValidTimeExtension() {
+	
+	$.ajax({
+		url : "/srome/sessionValidTimeExtension.do"
+	});
+}
+
+function setTimer() { // 1초 간격으로 호출할 타이머 함수 
+	// hh : mm 으로 남은시간 표기하기 위한 변수
+	remainMinute_ = parseInt(remainSecond / 60);
+	remainSecond_ = remainSecond % 60;
+
+	if (remainSecond > 0) {
+		$("#timer").empty();
+		$("#timer").append(Lpad(remainMinute_, 2) + "분 " + Lpad(remainSecond_, 2) + "초 후 자동로그아웃");    // hh:mm 표기
+		remainSecond--;
+		setTimeout("setTimer()", 1000); //1초간격으로 재귀호출!
+	} else {
+		location.href = '/srome/logout.do';
+	}
+}
+
+function Lpad(str, len) {  // hh mm형식으로 표기하기 위한 함수
+	str = str + "";
+	while (str.length < len) {
+		str = "0" + str;
+	}
+	return str;
+}
+
+function isEmpty(value) {
+	if (value === null) {
+		return true;
+	} else if (typeof value === 'undefined') {
+		return true;
+	} else if (typeof value === 'string' && value === '') {
+		return true;
+	} else if (Array.isArray(value) && value.length < 1) {
+		return true;
+	} else if (typeof value === 'object' && value.constructor.name === 'Object' && Object.keys(value).length < 1 && Object.getOwnPropertyNames(value) < 1) {
+		return true;
+	} else if (typeof value === 'object' && value.constructor.name === 'String' && Object.keys(value).length < 1) {
+		return true;
+	} else {
+		return false;
+	}
+}
+/*************************
+ * 로그인 시간연장: E
+ *************************/
+
+/* 서브메인 화면 이동 */
+function f_dynamicSubMain() {
+	var selector = document.querySelector('.breadcrumb .depth1');
+	var display = window.getComputedStyle(selector).display;
+	if (selector && display !== 'none') {
+		selector.querySelector('ul > li > a.on').click();
+	} else {
+		f_moveMain();
+	}
+}
+</script>
+
+	
+
+
+
+
+
+
+
+
+
+<style>
+/* 테이블 헤더 시작 */
+.table_list .list-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.table_list .content-title {
+  padding: 1rem 0.75rem 0.9rem;
+  font-size: 0.937rem;
+  font-weight: 500;
+  background-color: #f4f5f7;
+  border-bottom: 1px solid #ddd;
+  vertical-align: middle;
+  text-align: center;
+  line-height: 1;
+  max-height: 43.67px;
+}
+
+.table_list .content-title.no {
+  width: 7%;
+  min-width: 80px;
+}
+
+.table_list .content-title.subject {
+  width: 84%;
+  flex-grow: 1;
+}
+
+.table_list .content-title.dDay {
+  width: 8%;
+  min-width: 100px;
+}
+/* 테이블 헤더 끝 */
+</style>
+
+<script>
+
+$(function() {
+	// 시작 날짜 입력하고 엔터키 누르면 검색
+	const strDate = document.getElementById("startDate");
+
+	strDate.addEventListener('keydown', (event) => {
+		if (event.keyCode === 13){
+			event.preventDefault();
+			f_search();
+		}
+	});
+
+	// 마지막 날짜 입력하고 엔터키 누르면 검색
+	const endDate = document.getElementById("endDate");
+
+	endDate.addEventListener('keydown', (event) => {
+		if (event.keyCode === 13){
+			event.preventDefault();
+			f_search();
+		}
+	});
+
+	// 라디오 버튼 선택하고 엔터키 누르면 검색
+	const radioBtn = document.querySelectorAll('input[type="radio"][name="rcveStatus"]');
+
+	radioBtn.forEach(function(radio) {
+		radio.addEventListener('keydown', (event) => {
+			if (event.keyCode === 13) {
+				event.preventDefault();
+				f_search();
+			}
+		});
+	});
+
+	/* 시작일 선택시 종요일자에서 시작일 이전 선택 비활성화 */
+	$("#startDate").change(function() {
+		$("#endDate").attr("min", $("#startDate").val());
+		$("#startDate").attr("max", $("#endDate").val());
+	});
+
+	/* 공통 로딩바 숨김 */
+	f_hideLoadLayout();
+
+});
+
+/* 목록조회 */
+function f_search(pageIndex) {
+	if ( !f_validate() ) return false;
+
+	$('#pageIndex').val(pageIndex);
+	document.searchForm.action = "/srome/biz/perform/opnnPrpsl/retrieveTaskAnncmListView.do";
+	document.searchForm.submit();
+}
+
+/* 검색값 초기화 */
+function f_reset() {
+	// 선택상자 초기화
+	document.querySelector("#srchGubun").selectedIndex = 0;
+	// 검색어 초기화
+	$("#srchKwd").val("");
+
+	// 접수상태 라디오버튼 초기화
+	const radio1 = document.querySelectorAll("input[name=rcveStatus]:checked");
+	radio1.checked = false;
+
+	const radio2 = document.querySelectorAll("input[name=rcveStatus]")[0];
+	radio2.checked = true;
+
+	// 접수기간 초기화
+	$("#startDate").val("");
+	$("#endDate").val("");
+}
+
+/* 접수상태 */
+function f_rcveStatus(element) {
+	if (element == "A") {
+		$('#rdo-type-all').val("A");
+		f_search();
+	} else if (element == "C") {
+		$('#rdo-type-01').val("C");
+		f_search();
+	} else if (element === "B") {
+		$('#rdo-type-04').val("B");
+		f_search();
+	} else {
+		$('#rdo-type-03').val("all");
+		f_search();
+	}
+}
+
+/* 상세화면으로 이동 */
+function f_detail(ancmId, bsnsYy) {
+	$("#ancmId").val(ancmId);
+	$("#bsnsYy").val(bsnsYy);
+	document.searchForm.action = "/srome/biz/perform/opnnPrpsl/retrieveTaskAnncmInfoView.do";
+	document.searchForm.submit();
+}
+
+/* 검색조건 검증 */
+function f_validate() {
+	if (!$('#startDate').val() && !$('#endDate').val()) {
+		return true;
+	}
+
+	if ( !$('#startDate').val() ) {
+		alert('접수시작일을 정확히 입력해 주세요.');
+		$('#startDate').focus();
+		return;
+	}
+
+	if ( !$('#endDate').val() ) {
+		alert('접수종료일을 정확히 입력해 주세요.');
+		$('#endDate').focus();
+		return;
+	}
+
+	if ( $('#startDate').val() > $('#endDate').val() ) {
+		alert('접수시작일을 접수종료일보다 크게 설정할 수 없습니다.');
+		$('#startDate').focus();
+		return;
+	}
+	return true;
+}
+</script>
+
+	<!-- contents:S -->
+	<section id="content">
+		<div class="section">
+
+			<div class="page-title">
+				<h2>과제공고</h2>
+				<p>IRIS에 등록된 과제공고와 산업기술 R&amp;D 과제 공고를 제공해드립니다. 과제 접수에 필요한 내용을 확인해보세요!</p>
+			</div>
+
+			<div class="page-search">
+				<form name="searchForm" method="get">
+					<input type="hidden" id="pageIndex" name="pageIndex" value=""/>
+					<input type="hidden" id="ancmId" name="ancmId"/>
+					<input type="hidden" id="bsnsYy" name="bsnsYy"/>
+					<input type="hidden" name="prgmId" value="XPG201040000"/>
+
+					<div class="search-wrap main">
+
+						<div class="row center">
+							<div class="flex center tb-row tb-left" style="gap: 10px;">
+
+								<div class="flex col-2 tb-col-12 mb-col-12 mb-row mb-left">
+									<label for="srchGubun" class="sr-only">게시글 검색 타입 선택</label>
+									<select class="form" id="srchGubun" name="srchGubun">
+										<option value="">전체</option>
+										<option value="ancmTl" >제목</option>
+										<option value="ancmGidbkCn" >내용</option>
+									</select>
+								</div>
+
+								<div class="flex col-6 tb-col-12 mb-col-12 mb-row mb-left">
+									<label for="srchKwd" class="sr-only">검색 키워드 작성</label>
+									<input type="text" placeholder="검색어를 입력해 주세요." class="form" id="srchKwd" name="srchKwd" value="">
+								</div>
+
+								<div class="col tb-col-12 right">
+									<button onclick="f_search()" type="button" class="btn search">검색</button>
+									<!-- <button onclick="f_reset()" type="button" class="btn reset">초기화</button> -->
+								</div>
+
+							</div>
+						</div>
+
+						<div class="row">
+							<div class="col">
+								<span class="label">접수기간</span>
+								<div class="form-group nowrap">
+									<label for="startDate" class="label sr-only">접수 시작기간</label>
+									<input type="date" id="startDate" name="startDate" class="form ml0" value="" min="0000-01-01" max="9999-12-31">
+									<span>~</span>
+									<label for="endDate" class="label sr-only">접수 종료기간</label>
+									<input type="date" id="endDate" name="endDate" class="form ml0" value="" min="0000-01-01" max="9999-12-31">
+									<script>
+									$(function() {
+										/* const formattedDate = new Date().toISOString().split('T')[0];
+
+										$("#startDate").attr('max', formattedDate);
+										$("#endDate").attr('max', formattedDate); */
+
+										let fullDate = new Date();
+
+										let get_month = (fullDate.getMonth() + 1) + "";
+										let now_month = (get_month.length === 1) ? "0" + get_month : get_month;
+
+										let get_date = fullDate.getDate() + "";
+										let now_day = (get_date.length === 1) ? "0" + get_date : get_date;
+
+										const startDate = "";
+										const endDate = "";
+
+										let currentStrDate;
+										let currentEndDate;
+
+										if (startDate) {
+											currentStrDate = startDate;
+										} else {
+											//currentStrDate = fullDate.getFullYear() + "-" + now_month + "-" + now_day
+											currentStrDate = "";
+										}
+
+										if (endDate) {
+											currentEndDate = endDate;
+										} else {
+											//currentEndDate = fullDate.getFullYear() + "-" + now_month + "-" + now_day;
+											currentEndDate = "";
+										}
+
+										$("#startDate").attr("value", currentStrDate);
+										$("#endDate").attr("value", currentEndDate);
+									});
+									</script>
+								</div>
+							</div>
+
+							<div class="col">
+								<span class="label">접수상태</span>
+								<div class="form-group radio-group nowrap">
+									<label for="rdo-type-all" class="label">
+										<input type="radio" id="rdo-type-all" name="rcveStatus" value="all" checked onclick="f_rcveStatus('all');">
+										전체
+									</label>
+									<label for="rdo-type-01" class="label">
+										<input type="radio" id="rdo-type-01" name="rcveStatus" value="A"  onclick="f_rcveStatus('A');">
+										접수중
+									</label>
+									<label for="rdo-type-03" class="label">
+										<input type="radio" id="rdo-type-03" name="rcveStatus" value="C"  onclick="f_rcveStatus('C');">
+										접수마감
+									</label>
+									<label for="rdo-type-04" class="label">
+										<input type="radio" id="rdo-type-04" name="rcveStatus" value="B"  onclick="f_rcveStatus('B');">
+										접수예정
+									</label>
+								</div>
+							</div>
+						</div>
+
+					</div>
+				</form>
+			</div>
+
+			<div class="page-grid">
+				<div class="grid-head">
+					<div class="info">
+						<p>전체 <strong id="list-total-4">714</strong>건</p>
+						<p>페이지 <strong id="page-now-4">1</strong>/<span id="page-total-4">72</span></p>
+					</div>
+				</div>
+				<div class="grid-body">
+					<div class="table_list" id="assignment-notice_list">
+						<div class="list-header">
+							<div class="content-title no hide-mb">번호</div>
+							<div class="content-title subject">제목</div>
+							<div class="content-title dDay">마감기한</div>
+						</div>
+						
+						<div class="table_box">
+							<div class="table_box_wrap">
+								
+								<p class="no hide-mb">714</p>
+								<div class="table_box_detail">
+									<p class="banner flex">
+										
+											<span class="badge blue mr5">IRIS 공고</span>
+										
+										
+											<span class="badge red">접수중</span>
+										
+										
+										
+									</p>
+									<p class="subject">
+										<a onclick="f_detail('I22474', '2026'); return false;" href="#">
+											<span class="title">2026년도 제3차 조선해양산업기술개발사업(AI완전자율운항선박기술개발) 신규지원 대상과제 공고</span>
+										</a>
+									</p> 
+									<div class="info">
+										<p><span class="label">접수기간</span><span class="value">2026-06-15 09:00 ~ 2026-07-14 18:00</span></p>
+										<p><span class="label">등록일</span><span class="value">2026-06-15</span></p>
+									</div>
+								</div>
+							</div>
+							<div class="table_box_btn">
+								
+									<span class="badge white">D-25</span>
+								
+								
+								
+							</div>
+						</div>
+					
+						<div class="table_box">
+							<div class="table_box_wrap">
+								
+								<p class="no hide-mb">713</p>
+								<div class="table_box_detail">
+									<p class="banner flex">
+										
+											<span class="badge blue mr5">IRIS 공고</span>
+										
+										
+											<span class="badge red">접수중</span>
+										
+										
+										
+									</p>
+									<p class="subject">
+										<a onclick="f_detail('I22395', '2026'); return false;" href="#">
+											<span class="title">2026년도 제2차 국가표준기술력향상사업 신규지원 대상과제 공고</span>
+										</a>
+									</p> 
+									<div class="info">
+										<p><span class="label">접수기간</span><span class="value">2026-06-19 09:00 ~ 2026-07-13 18:00</span></p>
+										<p><span class="label">등록일</span><span class="value">2026-06-12</span></p>
+									</div>
+								</div>
+							</div>
+							<div class="table_box_btn">
+								
+									<span class="badge white">D-24</span>
+								
+								
+								
+							</div>
+						</div>
+					
+						<div class="table_box">
+							<div class="table_box_wrap">
+								
+								<p class="no hide-mb">712</p>
+								<div class="table_box_detail">
+									<p class="banner flex">
+										
+											<span class="badge blue mr5">IRIS 공고</span>
+										
+										
+											<span class="badge red">접수중</span>
+										
+										
+										
+									</p>
+									<p class="subject">
+										<a onclick="f_detail('I22434', '2026'); return false;" href="#">
+											<span class="title">2026년도 제2차 조선해양산업기술개발사업 신규지원 대상과제 공고</span>
+										</a>
+									</p> 
+									<div class="info">
+										<p><span class="label">접수기간</span><span class="value">2026-06-12 09:00 ~ 2026-07-13 18:00</span></p>
+										<p><span class="label">등록일</span><span class="value">2026-06-12</span></p>
+									</div>
+								</div>
+							</div>
+							<div class="table_box_btn">
+								
+									<span class="badge white">D-24</span>
+								
+								
+								
+							</div>
+						</div>
+					
+						<div class="table_box">
+							<div class="table_box_wrap">
+								
+								<p class="no hide-mb">711</p>
+								<div class="table_box_detail">
+									<p class="banner flex">
+										
+											<span class="badge blue mr5">IRIS 공고</span>
+										
+										
+											<span class="badge red">접수중</span>
+										
+										
+										
+									</p>
+									<p class="subject">
+										<a onclick="f_detail('I22194', '2026'); return false;" href="#">
+											<span class="title">2026년도 K-온디바이스 AI반도체 기술개발사업 신규 지원대상 연구개발과제 공고</span>
+										</a>
+									</p> 
+									<div class="info">
+										<p><span class="label">접수기간</span><span class="value">2026-06-18 09:00 ~ 2026-07-10 18:00</span></p>
+										<p><span class="label">등록일</span><span class="value">2026-06-11</span></p>
+									</div>
+								</div>
+							</div>
+							<div class="table_box_btn">
+								
+									<span class="badge white">D-21</span>
+								
+								
+								
+							</div>
+						</div>
+					
+						<div class="table_box">
+							<div class="table_box_wrap">
+								
+								<p class="no hide-mb">710</p>
+								<div class="table_box_detail">
+									<p class="banner flex">
+										
+											<span class="badge blue mr5">IRIS 공고</span>
+										
+										
+											<span class="badge red">접수중</span>
+										
+										
+										
+									</p>
+									<p class="subject">
+										<a onclick="f_detail('I21894', '2026'); return false;" href="#">
+											<span class="title">2026년도 제2차 제품안전관리기술개발및실증사업 신규지원 대상과제 공고</span>
+										</a>
+									</p> 
+									<div class="info">
+										<p><span class="label">접수기간</span><span class="value">2026-05-29 09:00 ~ 2026-06-30 18:00</span></p>
+										<p><span class="label">등록일</span><span class="value">2026-05-29</span></p>
+									</div>
+								</div>
+							</div>
+							<div class="table_box_btn">
+								
+									<span class="badge white">D-11</span>
+								
+								
+								
+							</div>
+						</div>
+					
+						<div class="table_box">
+							<div class="table_box_wrap">
+								
+								<p class="no hide-mb">709</p>
+								<div class="table_box_detail">
+									<p class="banner flex">
+										
+											<span class="badge blue mr5">IRIS 공고</span>
+										
+										
+											<span class="badge red">접수중</span>
+										
+										
+										
+									</p>
+									<p class="subject">
+										<a onclick="f_detail('I21937', '2026'); return false;" href="#">
+											<span class="title">2026년도 자동차산업기술개발 2차 신규지원 대상과제 공고</span>
+										</a>
+									</p> 
+									<div class="info">
+										<p><span class="label">접수기간</span><span class="value">2026-06-05 09:00 ~ 2026-06-29 18:00</span></p>
+										<p><span class="label">등록일</span><span class="value">2026-06-09</span></p>
+									</div>
+								</div>
+							</div>
+							<div class="table_box_btn">
+								
+									<span class="badge white">D-10</span>
+								
+								
+								
+							</div>
+						</div>
+					
+						<div class="table_box">
+							<div class="table_box_wrap">
+								
+								<p class="no hide-mb">708</p>
+								<div class="table_box_detail">
+									<p class="banner flex">
+										
+											<span class="badge blue mr5">IRIS 공고</span>
+										
+										
+											<span class="badge red">접수중</span>
+										
+										
+										
+									</p>
+									<p class="subject">
+										<a onclick="f_detail('I21975', '2026'); return false;" href="#">
+											<span class="title">2026년도 제2차 바이오헬스분야 연구개발사업 신규지원 대상과제 통합 공고</span>
+										</a>
+									</p> 
+									<div class="info">
+										<p><span class="label">접수기간</span><span class="value">2026-06-08 09:00 ~ 2026-06-29 18:00</span></p>
+										<p><span class="label">등록일</span><span class="value">2026-06-08</span></p>
+									</div>
+								</div>
+							</div>
+							<div class="table_box_btn">
+								
+									<span class="badge white">D-10</span>
+								
+								
+								
+							</div>
+						</div>
+					
+						<div class="table_box">
+							<div class="table_box_wrap">
+								
+								<p class="no hide-mb">707</p>
+								<div class="table_box_detail">
+									<p class="banner flex">
+										
+										
+											<span class="badge red">접수중</span>
+										
+										
+										
+									</p>
+									<p class="subject">
+										<a onclick="f_detail('I22056', '2026'); return false;" href="#">
+											<span class="title">2026년도 지식서비스산업기술개발사업(서비스핵심기술개발) 신규지원 대상과제 공고</span>
+										</a>
+									</p> 
+									<div class="info">
+										<p><span class="label">접수기간</span><span class="value">2026-05-29 09:00 ~ 2026-06-29 18:10</span></p>
+										<p><span class="label">등록일</span><span class="value">2026-06-01</span></p>
+									</div>
+								</div>
+							</div>
+							<div class="table_box_btn">
+								
+									<span class="badge white">D-10</span>
+								
+								
+								
+							</div>
+						</div>
+					
+						<div class="table_box">
+							<div class="table_box_wrap">
+								
+								<p class="no hide-mb">706</p>
+								<div class="table_box_detail">
+									<p class="banner flex">
+										
+											<span class="badge blue mr5">IRIS 공고</span>
+										
+										
+											<span class="badge red">접수중</span>
+										
+										
+										
+									</p>
+									<p class="subject">
+										<a onclick="f_detail('I22075', '2026'); return false;" href="#">
+											<span class="title">2026년도 첨단산업용시스템엔지니어링설계모델링기술개발사업 신규지원 대상과제 공고</span>
+										</a>
+									</p> 
+									<div class="info">
+										<p><span class="label">접수기간</span><span class="value">2026-05-29 09:00 ~ 2026-06-29 18:10</span></p>
+										<p><span class="label">등록일</span><span class="value">2026-06-01</span></p>
+									</div>
+								</div>
+							</div>
+							<div class="table_box_btn">
+								
+									<span class="badge white">D-10</span>
+								
+								
+								
+							</div>
+						</div>
+					
+						<div class="table_box">
+							<div class="table_box_wrap">
+								
+								<p class="no hide-mb">705</p>
+								<div class="table_box_detail">
+									<p class="banner flex">
+										
+										
+											<span class="badge red">접수중</span>
+										
+										
+										
+									</p>
+									<p class="subject">
+										<a onclick="f_detail('I22076', '2026'); return false;" href="#">
+											<span class="title">2026년도 지식서비스산업기술개발사업(서비스산업융합고도화) 신규지원 대상과제 공고</span>
+										</a>
+									</p> 
+									<div class="info">
+										<p><span class="label">접수기간</span><span class="value">2026-05-29 09:00 ~ 2026-06-29 18:10</span></p>
+										<p><span class="label">등록일</span><span class="value">2026-06-01</span></p>
+									</div>
+								</div>
+							</div>
+							<div class="table_box_btn">
+								
+									<span class="badge white">D-10</span>
+								
+								
+								
+							</div>
+						</div>
+					
+
+					
+
+					</div>
+				</div>
+
+				<div class="grid-foot">
+					<ul>
+						<li><a href="?pageIndex=1" class="btn first" onclick="f_search(1); return false;"><span class="sr-only">첫 페이지</span></a></li><li><a href="?pageIndex=1" class="btn prev" onclick="f_search(1); return false;"><span class="sr-only">이전 페이지</span></a></li><li class="on"><a href="javascript:void(0);" class="btn" onclick="return false;">1</a></li><li><a href="?pageIndex=2" class="btn" onclick="f_search(2); return false;">2</a></li><li><a href="?pageIndex=3" class="btn" onclick="f_search(3); return false;">3</a></li><li><a href="?pageIndex=4" class="btn" onclick="f_search(4); return false;">4</a></li><li><a href="?pageIndex=5" class="btn" onclick="f_search(5); return false;">5</a></li><li><a href="?pageIndex=6" class="btn" onclick="f_search(6); return false;">6</a></li><li><a href="?pageIndex=7" class="btn" onclick="f_search(7); return false;">7</a></li><li><a href="?pageIndex=8" class="btn" onclick="f_search(8); return false;">8</a></li><li><a href="?pageIndex=9" class="btn" onclick="f_search(9); return false;">9</a></li><li><a href="?pageIndex=10" class="btn" onclick="f_search(10); return false;">10</a></li><li><a href="?pageIndex=11" class="btn next" onclick="f_search(11); return false;"><span class="sr-only">다음 페이지</span></a></li><li><a href="?pageIndex=72" class="btn last" onclick="f_search(72); return false;"><span class="sr-only">마지막 페이지</span></a></li>
+ <!-- 20250807 예외 처리 대상 : 전자정부프레임워크에서 제공하는 태그로 크로스 사이트 스크립트(XSS)와 무관  -->
+					</ul>
+				</div>
+			</div>
+
+		</div>
+	</section>
+	<!-- contents:E -->
+
+	
+
+
+
+
+
+
+
+<!-- footer:S -->
+<footer id="footer">
+	<div class="section">
+		<div class="info">
+			<div class="left">
+				<div class="logo">
+					<img src="/sromeweb/images/img-footer-logo1.png" alt="keit 로고">
+					<img src="/sromeweb/images/img-footer-logo2.png" alt="산업통상자원부 로고">
+				</div>
+				<div class="branch">
+					<ul>
+						<li>
+							<span class="name">대구본원</span>
+							<span class="addr">(41069) 대구광역시 동구 첨단로 8길 32(혁신동 1152번지)</span>
+						</li>
+						<li>
+							<span class="name">동대구전자평가장</span>
+							<span class="addr">(41256) 대구광역시 동구 동대구로 489 대구무역회관 12층</span>
+						</li>
+						<li>
+							<span class="name">대전분원</span>
+							<span class="addr">(35262) 대전광역시 서구 문정로 48번길 48 계룡사옥 3층(탄방동 674번지)</span>
+						</li>
+						<li>
+							<span class="name">서울사무소</span>
+							<span class="addr">(04513) 서울특별시 중구 세종대로 39 상공회의소회관 4층</span>
+						</li>
+					</ul>
+				</div>
+			</div>
+			<div class="right">
+				<div>
+					<div class="sites">
+						<label for="related_sites" class="sr-only">관련 사이트 바로가기 새창열림</label>
+						<select class="btn combo" id="related_sites" onchange="if(this.value)window.open(this.value);">
+							<option class="text" selected disabled hidden>관련 사이트 목록</option>
+							<option class="text" value="http://www.motie.go.kr" target="_blank" title="새창이동, 산업통상부 홈페이지">- 산업통상부</option>
+							<option class="text" value="http://www.keit.re.kr" target="_blank" title="새창이동, 한국산업기술기획평가원">- 한국산업기술기획평가원</option>
+							<option class="text" value="http://kiat.or.kr" target="_blank" title="새창이동, 한국산업기술진흥원">- 한국산업기술진흥원</option>
+							<option class="text" value="http://www.ketep.re.kr" target="_blank" title="새창이동, 한국에너지기술평가원">- 한국에너지기술평가원</option>
+							<option class="text" value="http://www.kicox.or.kr" target="_blank" title="새창이동, 한군산업단지공단">- 한국산업단지공단</option>
+							<option class="text" value="http://www.energy.or.kr" target="_blank" title="새창이동, 한국에너지공단">- 한국에너지공단</option>
+							<option class="text" value="http://www.etep.or.kr" target="_blank" title="새창이동, 전력기반센터">- 전력기반센터</option>
+							<option class="text" value="http://www.nanotech2020.org" target="_blank" title="새창이동, 나노융합2020사업단">- 나노융합2020사업단</option>
+							<option class="text" value="http://data.kofind.co.kr/fs/FSDSI05R1.pop?instCd=78" target="_blank" title="새창이동, 재무정보 온라인 제출">- 재무정보 온라인 제출</option>
+							<option class="text" value="https://www.sobujang.net" target="_blank" title="새창이동, 소부장넷">- 소부장넷</option>
+							<option class="text" value="https://www.iris.go.kr" target="_blank" title="새창이동, 범부처통합연구지원시스템">- 범부처통합연구지원시스템</option>
+							<option class="text" value="https://techfin.rcms.go.kr" target="_blank" title="새창이동, 기술금융플랫폼">- 기술금융플랫폼</option>
+						</select>
+					</div>
+					<div class="sns">
+						<a href="javascript:void(0);" onclick="f_moveYoutube()" class="btn youtube" style="display: flex; justify-content: center; align-items: center;">
+							<img src="/sromeweb/images/ic-sns-youtube.png" alt="유튜브 바로가기" style="width: 26px; height: 26px; margin: auto;">
+							<span class="sr-only">유튜브 바로가기</span>
+						</a>
+						<a href="javascript:void(0);" onclick="f_moveInstagram()" class="btn" style="display: flex; justify-content: center; align-items: center;">
+							<img src="/sromeweb/images/ic-sns-instagram.png" alt="인스타그램 바로가기" style="width: 20px; height: auto; margin: auto;">
+							<span class="sr-only">인스타그램 바로가기</span>
+						</a>
+						<a href="javascript:void(0);" onclick="f_moveFacebook()" class="btn" style="display: flex; justify-content: center; align-items: center;">
+							<img src="/sromeweb/images/ic-sns-facebook.png" alt="페이스북 바로가기" style="width: 10px; height: auto; margin: auto;">
+							<span class="sr-only">페이스북 바로가기</span>
+						</a>
+						<a href="javascript:void(0);" onclick="f_moveNaverBlog()" class="btn" style="display: flex; justify-content: center; align-items: center;">
+							<img src="/sromeweb/images/ic-sns-naver.png" alt="네이버블로그 바로가기" style="width: 14px; height: auto; margin: auto;">
+							<span class="sr-only">네이버블로그 바로가기</span>
+						</a>
+					</div>
+				</div>
+				<div class="cs">
+					<a href="tel:1544-6633" class="call">
+						<i>CS Center</i>
+						<strong>1544•6633</strong>
+						<!-- <p>평일 9:00 ~ 18:00</p> -->
+						<!-- <p>(주말 및 공휴일 휴무)</p> -->
+						<span class="sr-only">CS Center</span>
+					</a>
+				</div>
+			</div>
+		</div>
+		<div class="copyrights">
+			<p>ⓒ 2024 Korea Planning & Evaluation Institute of Industrial Technology. All Rights Reserved.</p>
+			<ul>
+				<li class="privacy"><a href="javascript:void(0);" onclick="f_memberInfoHdlg();">개인정보처리방침</a></li>
+				<li><a href="javascript:void(0);" onclick="f_utlzClus();">이용약관</a></li>
+				<li><a href="javascript:void(0);" onclick="f_emailInfoClctRejt();">이메일무단수집거부</a></li>
+				<li><a href="#" onclick="f_openPopupIdvd(); return false;" style="color: #64E1FF; opacity: 0.9;">개인정보열람 및 정정청구</a></li>
+				<!-- <li><a href="javascript:void(0);" onclick="f_mapInfo();">찾아오시는 길</a></li> -->
+			</ul>
+		</div>
+	</div>
+</footer>
+<!-- footer:E -->
+
+<!-- sitemap:S -->
+<div id="sitemap">
+	<div class="sitemap-head">
+		<div class="section col">
+			<a href="javascript:void(0);" class="title" onclick="f_moveMain();">
+				<img src="/sromeweb/images/svg/logo-s_rome.svg" alt="S-Rome 로고">
+				<span class="depth0"></span>
+			</a>
+			<a href="javascript:void(0);" class="close">
+				<span>전체메뉴 닫기</span>
+				<span class="sr-only">전체메뉴 닫기</span>
+			</a>
+		</div>
+	</div>
+	<div class="sitemap-body">
+		<div class="section">
+			<div class="menus">
+				<ul class="depth1">
+					
+						
+						
+							<li class="menu1">
+								<a class="title tit1" href="javascript:void(0);">분석</a>
+								<div class="m-group" id="sXPG100000000"></div>
+							</li>
+							<li class="menu2">
+								<a class="title" href="javascript:void(0);">수행</a>
+								<div class="m-group" id="sXPG200000000"></div>
+							</li>
+							<li class="menu3">
+								<a class="title" href="javascript:void(0);">협업</a>
+								<div class="m-group" id="sXPG300000000"></div>
+							</li>
+							<li class="menu4">
+								<a class="title" href="javascript:void(0);">정보</a>
+								<div class="m-group" id="sXPG400000000"></div>
+							</li>
+							<li class="menu5 support">
+								<a class="title pc-tit" href="javascript:void(0);">고객지원<i class="ic-combo"></i></a>
+								<a class="title m-tit" href="javascript:void(0);" style="display: none;">고객<br />지원</a>
+								<div class="m-group" id="sXPG500000000"></div>
+							</li>
+							<li class="menu6 myrome">
+								<a class="title pc-tit" href="javascript:void(0);">마이페이지</a>
+								<a class="title m-tit" href="javascript:void(0);" style="display: none;">마이<br/>페이</br>지</a>
+								<div class="m-group" id="sXPG600000000"></div>
+							</li>
+						
+					
+				</ul>
+			</div>
+		</div>
+	</div>
+</div>
+<!-- sitemap:E -->
+
+<!-- quickMenu:S -->
+
+	<div id="quickMenu" style="z-index:0;">	
+		<div class="often-service">
+			<p class="title">자주 찾는 서비스</p>
+			<ul>
+				<li>
+					<a href="/srome/biz/cltSup/notice/retrieveNoticeListView.do?prgmId=XPG501000000">공지사항</a>
+				</li>
+				<li>
+					<a href="/srome/biz/cltSup/usIqr/retrieveFaqListView.do?prgmId=XPG503010000&blltHirkClSrid=C51010320000000">FAQ</a>
+				</li>
+				<li>
+					<a href="/srome/biz/cltSup/eduCenter/retrieveEduCenterNoticeLstView.do?prgmId=XPG505010000">R&amp;D 교육</a>
+				</li>
+				<li>
+					<a href="/srome/biz/perform/reSrchDevPerform/retrievePrfRsrSvlTskInfoView.do?prgmId=XPG204000000">과제관리</a>
+				</li>
+				<li>
+					<a href="/srome/biz/myrome/myAlaSrch/retrieveMyNtfElctListView.do?prgmId=XPG602000000">내 알림 조회</a>
+				</li>
+				<li>
+					<a href="/srome/biz/cltSup/rgltData/retrieveUserMnlListView.do?prgmId=XPG502030000">매뉴얼</a>
+				</li>
+				<li>
+					<a href="/srome/biz/cltSup/rgltData/retrieveStndrFormListView.do?prgmId=XPG502020000">표준서식</a>
+				</li>
+			</ul>
+		</div>
+
+		
+		<div class="swiper_list">
+			<div class="swiper swiper_box swiper-initialized swiper-horizontal swiper-backface-hidden" id="footerSwiper">
+				<div class="swiper-wrapper" id="swiper-wrapper-115a38519e92addd" aria-live="off"></div>
+
+				<div id="footer-swiper-next" class="swiper-button-next" tabindex="0" role="button" aria-label="Next slide" aria-controls="swiper-wrapper-115a38519e92addd" aria-disabled="false"></div>
+				<div id="footer-swiper-prev" class="swiper-button-prev" tabindex="0" role="button" aria-label="Previous slide" aria-controls="swiper-wrapper-115a38519e92addd" aria-disabled="false"></div>
+				<span class="swiper-notification" aria-live="assertive" aria-atomic="true"></span>
+				<span class="swiper-notification" aria-live="assertive" aria-atomic="true"></span>
+			</div>
+		</div>
+		<script>
+			var swiper = new Swiper("#footerSwiper", {
+				//loop: true,
+				slidesPerView: 1,
+				pagination: {
+					el: "#footer-swiper-pagination",
+					clickable: true,
+				},
+				navigation: {
+					nextEl: "#footer-swiper-next",
+					prevEl: "#footer-swiper-prev",
+				},
+				autoplay: {
+					delay: 4000, 
+					disableOnInteraction: false, // false로 설정하면 스와이프 후 자동 재생이 비활성화 되지 않음
+				},
+			});
+		</script>
+		
+
+		<div class="top">
+			<button type="button" class="topBtn">
+				<i class="ic-top"></i>
+			</button>
+		</div>
+	</div>
+
+
+<!-- quickMenu:E -->
+
+<script>
+$(document).ready(function () {
+	
+		f_slidingBanner(4);
+	
+});
+
+var systemCimsUrl = "https://cims.keit.re.kr";
+
+// 개인정보 처리방침
+function f_memberInfoHdlg() {
+ 	//var sUrl = systemCimsUrl + "/common/selectRndPopup.do";
+ 	var sUrl = 'https://www.keit.re.kr/menu.es?mid=a10308030000';
+	var popupId = "memberInfoHdlgPopup";
+	var width  = "930";
+	var height = "843";
+	var param = {"sysCd" : 'DI8003',"clusSe":'DE0015'};
+	var option = {"zindex" : '3000', "scrollbars":'yes',"location":'no',"scrolling":'yes',"resize":'yes'};
+	var callback = "";
+	f_openWindowPopup(sUrl, popupId, param, width, height, option, callback);
+}
+
+// 이용약관
+function f_utlzClus(){
+ 	var sUrl = systemCimsUrl + "/common/selectRndPopup.do";
+	var popupId = "utlzClusPopup";
+	var width  = "940";
+	var height = "967";
+	var param = {"sysCd" : 'DI8003',"clusSe":'DE0011'};
+	var option = {"zindex" : '3000', "scrollbars":'yes',"location":'no',"scrolling":'yes',"resize":'yes'};
+	var callback = "";
+	f_openWindowPopup(sUrl, popupId, param, width, height, option, callback);
+}
+
+// 이메일 무단수집거부
+function f_emailInfoClctRejt() {
+	var sUrl = systemCimsUrl + "/common/selectRndPopup.do";
+	var popupId = "emailInfoClctRejtPopup";
+	var width  = "950";
+	var height = "790";
+	var param = {"sysCd" : 'DI8003',"clusSe":'DE0016'};
+	var option = {"zindex" : '3000', "scrollbars":'yes',"location":'no',"scrolling":'yes',"resize":'yes'};
+	var callback = "";
+	f_openWindowPopup(sUrl, popupId, param, width, height, option, callback);
+}
+
+// 찾아오시는 길
+function f_mapInfo() {
+	//window.open('about:blank').location.href = 'https://keit.re.kr/menu.es?mid=a10114030000';
+	var sUrl = "https://keit.re.kr/menu.es?mid=a10114030000";
+	var popupId = "mapInfoPopup";
+	var width  = "1144";
+	var height = "843";
+	var param = {};
+	var option = {"zindex" : '3000', "scrollbars":'yes',"location":'no',"scrolling":'yes',"resize":'yes'};
+	var callback = "";
+	f_openWindowPopup(sUrl, popupId, param, width, height, option, callback);
+}
+
+/* 개인정보열람 및 정정청구 */
+function f_openPopupIdvd() {
+	//const sUrl = systemCimsUrl + "/member/retrieveCimIdvdHdlgRqsList.do";
+	const sUrl = systemCimsUrl + "/member/CimIdvdAuthcheck.do";
+	const popupId = "iDvd";
+	const param = {"sysCd" : 'DI8003'};
+	const width  = "1050";
+	const height = "822";
+	const option = {"resize": 'yes', "scrollbars": 'yes', "scrolling": 'yes'};
+	const callback = "";
+	f_openWindowPopup(sUrl, popupId, param, width, height, option, callback);
+}
+
+/* 인스타그램으로 이동 */
+function f_moveInstagram(){
+	window.open('https://www.instagram.com/keitrome');
+}
+
+/* 페이스북으로 이동 */
+function f_moveFacebook(){
+	window.open('https://www.facebook.com/keitrome0');
+}
+
+/* 유튜브로 이동 */
+function f_moveYoutube(){
+	window.open('https://www.youtube.com/@keitrome');
+}
+
+/* 네이버 블로그로 이동 */
+function f_moveNaverBlog(){
+	window.open('https://blog.naver.com/keitrome');
+}
+
+/* 설문조사 이동 */
+function f_moveSurvey(){
+	location.href = "/srome/biz/perform/opnnPrpsl/retrieveSrvyLstView.do?prgmId=XPG201030000";
+}
+
+/* OROME으로 이동 */
+function f_moveOrome(){
+	$.ajax({
+		type: 'GET',
+		url: "/srome/biz/common/srome/retrieveSessionEncode.do",
+		dataType: 'json',
+		success: function(data) {
+			var oromeUrl = '';
+
+			if ( data.encodingSessionMap.mbrIdSignKey != '' ) {
+				oromeUrl = 'https://rome.keit.re.kr/orome/com/login/dxLogin.do?loginId=' + data.encodingSessionMap.loginId + '&mbrIdSignKey=' + data.encodingSessionMap.mbrIdSignKey + '&mbrId=' + data.encodingSessionMap.mbrId;
+			} else {
+				oromeUrl = 'https://rome.keit.re.kr/orome/';
+			}
+
+			window.open(oromeUrl, '_blank');
+		},
+		error: function(request, status, error) {
+			alert('오류가 발생하였습니다.');
+		}
+	});
+}
+
+// 슬라이드 배너
+function f_slidingBanner(limitCnt) {
+	const slide_card_list = [];
+	const slide_temp_list = [ 
+		/*
+		{
+			'url': '/srome/biz/info/keitPub/retrieveTechFocusInfoView.do?blltSeq=95892&pageIndex=&searchCdtn=&searchKeyword=',
+			'src': '/srome/biz/common/srome/previewImage.do?imgSrc=/app/file/pms/2023/07/11/7796B7B7-BD1E-C011-634C-4C7460F07C32.png',
+			'alt': '테스트',
+		},
+		*/
+	];
+
+	// DOM에 슬라이드 이미지 추가
+	const f_addSlide = function(info) {
+		if (info.url && info.src && info.alt) {
+			let slidingBanner = ``;
+			slidingBanner += `<div class="swiper-slide w150 h150" role="group">`;
+			slidingBanner += 	`<a href="${info.url}">`;
+			slidingBanner += 		`<img src="${info.src}" alt=${info.alt}"/>`;
+			slidingBanner += 	`</a>`;
+			slidingBanner += `</div>`;
+			document.querySelector('#swiper-wrapper-115a38519e92addd').insertAdjacentHTML('beforeend', slidingBanner);
+		}
+	}
+
+	$.ajax({
+		type : "POST",
+		url : contextRoot + "/sromeSlidingBanner.do",
+		data : {'limitCnt': limitCnt},
+		dataType : "json",
+		loadingYN : 'N',
+		success : function(slidingBannerData) {
+			const slidingBannerList = slidingBannerData.cardnewsListLimitN;
+
+			slidingBannerList.forEach(function(it, idx) {
+				try {
+					let atchDocId = NVL(it.blltAtchDocId, '');
+					let atchFileId = NVL(it.atchFileId, '').trim();
+					let fileNm = '';
+					if (it.atchFileList && atchDocId && atchFileId && it.atchFileList.length > 0) {
+						const thumbnail = it.atchFileList.filter(function(atchIt) {return atchIt.atchFileId === atchFileId});
+						atchDocId = NVL(thumbnail[0].atchDocId, '');
+						atchFileId = NVL(thumbnail[0].atchFileId, '');
+						fileNm = NVL(thumbnail[0].fileNm, '');
+					}
+
+					const info = {
+						'url': `/srome/biz/info/romePrmt/retrieveCrdNewsInfoView.do?prgmId=XPG402020000&pageIndex=&blltSeq=${it.blltSeq}&srchGubun=&srchKwd=`,
+						'src': `/srome/biz/common/srome/previewImage.do?atchDocId=${atchDocId}&atchFileId=${atchFileId}&fileNm=${fileNm}`,
+						'alt': it.blltTl
+					};
+
+					slide_card_list.push(info);
+				} catch(exception) {}
+			});
+
+			// 임의 목록
+			slide_temp_list.forEach(function(e) {
+				f_addSlide(e);
+			});
+
+			// 카드뉴스 목록
+			slide_card_list.forEach(function(e) {
+				f_addSlide(e);
+			});
+
+			swiper.update();
+		}
+	});
+}
+</script>
+
+	<!-- 로딩바 구현을 위한 DIV -->
+	<div id="loadingContent"></div>
+	<!-- 로딩바 구현을 위한 DIV -->
+	<!-- 분석 로딩바 구현을 위한 DIV -->
+	<div id="anly-overlay" class="modal_popup on" style="display: none;">
+		<div class="modal_wrap" style="margin: 0 auto; height: 200px;">
+			<div class="load">
+				<div class="load-img">
+					<img src="/sromeweb/images/img-load.png" alt="로딩바">
+				</div>
+				<div class="load-text">
+					<strong>AI 로미가 열심히 분석하고 있습니다.</strong>
+					<p>조금만 기다려주세요.</p>
+				</div>
+			</div>
+			<div class="progressbar">
+				<span class="loading"></span>
+			</div>
+		</div>
+	</div>
+	<!-- 분석 로딩바 구현을 위한 DIV -->
+</body>
+</html>

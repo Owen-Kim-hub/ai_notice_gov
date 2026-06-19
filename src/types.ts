@@ -30,4 +30,5 @@ export interface ExtractResponse {
   finalCount: number;
   warning?: string;
   isFallback?: boolean;
+  portalStats?: Record<string, number>;
 }
