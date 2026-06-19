@@ -1,0 +1,6 @@
+{
+  "name": "AI 공고 추출기",
+  "description": "국내 주요 R&D 지원 포털에서 AI 관련 최신 공고문을 일괄 추출, 필터링 및 중복 보정하여 엑셀 파일로 한눈에 정리하고 바로 접속할 수 있는 도구입니다.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
