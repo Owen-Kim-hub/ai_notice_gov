@@ -354,7 +354,7 @@ export default function App() {
             {/* Quick Helper Widget: Portals list */}
             <div className="bg-white rounded-2xl border border-neutral-200 p-5 shadow-sm">
               <h3 className="font-semibold text-xs text-neutral-400 uppercase tracking-wider mb-3">연동 및 보정 포털 리스트 (총 {PORTALS_LIST.length}개)</h3>
-              <div className="space-y-1.5 max-h-[240px] overflow-y-auto pr-1 text-xs">
+              <div className="space-y-1.5 text-xs">
                 {PORTALS_LIST.map((p) => (
                   <div key={p.rank} className="flex items-center justify-between py-1 border-b border-neutral-50/50 last:border-0 hover:bg-neutral-50 px-1 rounded">
                     <div className="flex items-center space-x-2 min-w-0">
@@ -508,8 +508,6 @@ export default function App() {
                       </div>
                       <p className="text-neutral-600 text-[11px] leading-relaxed">
                         좌측 <strong>연동 및 보정 포털 리스트</strong>의 각 사이트에서 추출 조건(기간·키워드)에 맞는 공고를 실시간 수집합니다.
-                        <strong> [공고문 바로접속]</strong>은 포털에서 파싱한 <strong>실제 상세 페이지 URL</strong>을
-                        Referer 없이 여는 게이트웨이(<code className="text-[10px] bg-white px-1 rounded">/api/open</code>)로 연결합니다.
                       </p>
                     </div>
 
