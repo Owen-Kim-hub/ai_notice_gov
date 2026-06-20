@@ -629,20 +629,50 @@ function getPortalPriorityIndex(portalName) {
   }
   return 999;
 }
+function normalizeKeywords(body) {
+  const values = Array.isArray(body.keywords) ? body.keywords : [body.keyword || ""];
+  return values.map((value) => value.trim()).filter(Boolean).slice(0, 3);
+}
+function announcementMatchesKeywords(item, keywords, operator) {
+  if (keywords.length === 0) return true;
+  const haystack = [item.title, item.description, item.department, item.portal].join(" ").toLowerCase();
+  const matches = keywords.map((keyword) => haystack.includes(keyword.toLowerCase()));
+  return operator === "or" ? matches.some(Boolean) : matches.every(Boolean);
+}
 async function handleExtract(req, res) {
   const body = req.body || {};
   const startDate = body.startDate;
   const endDate = body.endDate;
-  const keyword = body.keyword || "AI";
+  const keywords = normalizeKeywords(body);
+  const keywordOperator = body.keywordOperator === "or" ? "or" : "and";
   if (!startDate || !endDate) {
     return res.status(400).json({ error: "startDate\uC640 endDate\uB294 \uD544\uC218 \uC785\uB825 \uD56D\uBAA9\uC785\uB2C8\uB2E4." });
   }
-  console.log(`[Extracting] Period: ${startDate} ~ ${endDate}, Keyword: ${keyword}`);
-  const summary = await scrapeAllPortals(startDate, endDate, keyword);
-  const rawPool = summary.announcements.map((item) => ({
+  console.log(
+    `[Extracting] Period: ${startDate} ~ ${endDate}, Keywords: ${keywords.join(` ${keywordOperator.toUpperCase()} `) || "(none)"}`
+  );
+  const searchTerms = keywords.length > 0 ? keywords : [""];
+  const summaries = keywordOperator === "or" && searchTerms.length > 1 ? await Promise.all(searchTerms.map((keyword) => scrapeAllPortals(startDate, endDate, keyword))) : [await scrapeAllPortals(startDate, endDate, searchTerms[0])];
+  const mergedAnnouncements = [];
+  const mergedSeen = /* @__PURE__ */ new Set();
+  const portalStats = {};
+  const errors = [];
+  for (const summary of summaries) {
+    for (const [portal, count] of Object.entries(summary.portalStats)) {
+      portalStats[portal] = (portalStats[portal] || 0) + count;
+    }
+    errors.push(...summary.errors);
+    for (const item of summary.announcements) {
+      const key = `${item.portal}::${item.url}`;
+      if (mergedSeen.has(key)) continue;
+      mergedSeen.add(key);
+      mergedAnnouncements.push(item);
+    }
+  }
+  const rawPool = mergedAnnouncements.map((item) => ({
     ...item,
     priorityIndex: getPortalPriorityIndex(item.portal)
-  }));
+  })).filter((item) => announcementMatchesKeywords(item, keywords, keywordOperator));
   const finalPool = [];
   const duplicatesLogged = [];
   const sortedRawPool = [...rawPool].sort((a, b) => {
@@ -688,8 +718,8 @@ async function handleExtract(req, res) {
   }
   const sortedFinalPool = finalPool.sort((a, b) => b.date.localeCompare(a.date));
   let warning;
-  if (summary.errors.length > 0) {
-    const failed = summary.errors.map((error) => error.portal).join(", ");
+  if (errors.length > 0) {
+    const failed = [...new Set(errors.map((error) => error.portal))].join(", ");
     warning = `\uC77C\uBD80 \uD3EC\uD138(${failed})\uC5D0\uC11C \uACF5\uACE0\uB97C \uAC00\uC838\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uB098\uBA38\uC9C0 \uD3EC\uD138 \uACB0\uACFC\uB294 \uC815\uC0C1 \uBC18\uC601\uB418\uC5C8\uC2B5\uB2C8\uB2E4.`;
   }
   if (sortedFinalPool.length === 0) {
@@ -701,7 +731,7 @@ async function handleExtract(req, res) {
     portalCount: PORTALS.length,
     originalCount: rawPool.length,
     finalCount: sortedFinalPool.length,
-    portalStats: summary.portalStats,
+    portalStats,
     warning,
     isFallback: false
   });

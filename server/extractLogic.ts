@@ -1,4 +1,4 @@
-import { PORTALS } from "./portals";
+import { PORTALS, type ScrapedAnnouncement } from "./portals";
 import { scrapeAllPortals } from "./portalScraper";
 
 export type ApiRequest = { body?: unknown; query?: Record<string, unknown> };
@@ -13,6 +13,8 @@ interface ExtractBody {
   startDate?: string;
   endDate?: string;
   keyword?: string;
+  keywords?: string[];
+  keywordOperator?: "and" | "or";
 }
 
 interface AnnouncementItem {
@@ -75,23 +77,69 @@ function getPortalPriorityIndex(portalName: string): number {
   return 999;
 }
 
+function normalizeKeywords(body: ExtractBody): string[] {
+  const values = Array.isArray(body.keywords) ? body.keywords : [body.keyword || ""];
+  return values
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
+function announcementMatchesKeywords(item: AnnouncementItem, keywords: string[], operator: "and" | "or"): boolean {
+  if (keywords.length === 0) return true;
+
+  const haystack = [item.title, item.description, item.department, item.portal]
+    .join(" ")
+    .toLowerCase();
+  const matches = keywords.map((keyword) => haystack.includes(keyword.toLowerCase()));
+
+  return operator === "or" ? matches.some(Boolean) : matches.every(Boolean);
+}
+
 export async function handleExtract(req: ApiRequest, res: ApiResponse) {
   const body = (req.body || {}) as ExtractBody;
   const startDate = body.startDate;
   const endDate = body.endDate;
-  const keyword = body.keyword || "AI";
+  const keywords = normalizeKeywords(body);
+  const keywordOperator = body.keywordOperator === "or" ? "or" : "and";
 
   if (!startDate || !endDate) {
     return res.status(400).json({ error: "startDate와 endDate는 필수 입력 항목입니다." });
   }
 
-  console.log(`[Extracting] Period: ${startDate} ~ ${endDate}, Keyword: ${keyword}`);
+  console.log(
+    `[Extracting] Period: ${startDate} ~ ${endDate}, Keywords: ${keywords.join(` ${keywordOperator.toUpperCase()} `) || "(none)"}`
+  );
 
-  const summary = await scrapeAllPortals(startDate, endDate, keyword);
-  const rawPool: AnnouncementItem[] = summary.announcements.map((item) => ({
+  const searchTerms = keywords.length > 0 ? keywords : [""];
+  const summaries =
+    keywordOperator === "or" && searchTerms.length > 1
+      ? await Promise.all(searchTerms.map((keyword) => scrapeAllPortals(startDate, endDate, keyword)))
+      : [await scrapeAllPortals(startDate, endDate, searchTerms[0])];
+
+  const mergedAnnouncements: ScrapedAnnouncement[] = [];
+  const mergedSeen = new Set<string>();
+  const portalStats: Record<string, number> = {};
+  const errors: { portal: string; message: string }[] = [];
+
+  for (const summary of summaries) {
+    for (const [portal, count] of Object.entries(summary.portalStats)) {
+      portalStats[portal] = (portalStats[portal] || 0) + count;
+    }
+    errors.push(...summary.errors);
+
+    for (const item of summary.announcements) {
+      const key = `${item.portal}::${item.url}`;
+      if (mergedSeen.has(key)) continue;
+      mergedSeen.add(key);
+      mergedAnnouncements.push(item);
+    }
+  }
+
+  const rawPool: AnnouncementItem[] = mergedAnnouncements.map((item) => ({
     ...item,
     priorityIndex: getPortalPriorityIndex(item.portal),
-  }));
+  })).filter((item) => announcementMatchesKeywords(item, keywords, keywordOperator));
 
   const finalPool: AnnouncementItem[] = [];
   const duplicatesLogged: {
@@ -148,8 +196,8 @@ export async function handleExtract(req: ApiRequest, res: ApiResponse) {
   const sortedFinalPool = finalPool.sort((a, b) => b.date.localeCompare(a.date));
 
   let warning: string | undefined;
-  if (summary.errors.length > 0) {
-    const failed = summary.errors.map((error) => error.portal).join(", ");
+  if (errors.length > 0) {
+    const failed = [...new Set(errors.map((error) => error.portal))].join(", ");
     warning = `일부 포털(${failed})에서 공고를 가져오지 못했습니다. 나머지 포털 결과는 정상 반영되었습니다.`;
   }
 
@@ -165,7 +213,7 @@ export async function handleExtract(req: ApiRequest, res: ApiResponse) {
     portalCount: PORTALS.length,
     originalCount: rawPool.length,
     finalCount: sortedFinalPool.length,
-    portalStats: summary.portalStats,
+    portalStats,
     warning,
     isFallback: false,
   });

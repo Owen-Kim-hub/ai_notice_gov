@@ -41,6 +41,10 @@ const PORTALS_LIST = [
   { rank: 15, name: "중소벤처기업부", url: "https://www.mss.go.kr/site/smba/ex/bbs/List.do?cbIdx=310" }
 ];
 
+const RESULTS_PAGE_SIZE = 15;
+const KEYWORD_FIELD_COUNT = 3;
+type KeywordOperator = "and" | "or";
+
 function formatDateKST(date: Date): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",
@@ -57,13 +61,16 @@ export default function App() {
 
   const [startDate, setStartDate] = useState(formatDateKST(thirtyDaysAgo));
   const [endDate, setEndDate] = useState(formatDateKST(now));
-  const [keyword, setKeyword] = useState("의료기기");
+  const [keywordInputs, setKeywordInputs] = useState(["의료기기", "", ""]);
+  const [keywordOperator, setKeywordOperator] = useState<KeywordOperator>("and");
   
   const [loading, setLoading] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"results" | "duplicates" | "portals">("results");
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentResultPage, setCurrentResultPage] = useState(1);
+  const [focusedKeywordIndex, setFocusedKeywordIndex] = useState<number | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleCopyText = (text: string, id: string) => {
@@ -78,6 +85,10 @@ export default function App() {
     handleExtract();
   }, []);
 
+  useEffect(() => {
+    setCurrentResultPage(1);
+  }, [extractedData, searchTerm]);
+
   const handleExtract = async () => {
     setLoading(true);
     setError(null);
@@ -90,7 +101,8 @@ export default function App() {
         body: JSON.stringify({
           startDate,
           endDate,
-          keyword
+          keywords: keywordInputs.map((value) => value.trim()).filter(Boolean),
+          keywordOperator
         })
       });
 
@@ -154,6 +166,16 @@ export default function App() {
     item.portal?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.department?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
+  const totalResultPages = Math.max(Math.ceil(filteredResults.length / RESULTS_PAGE_SIZE), 1);
+  const currentResultPageSafe = Math.min(currentResultPage, totalResultPages);
+  const resultPageStart = (currentResultPageSafe - 1) * RESULTS_PAGE_SIZE;
+  const visibleResults = filteredResults.slice(resultPageStart, resultPageStart + RESULTS_PAGE_SIZE);
+  const pageGroupStart = Math.floor((currentResultPageSafe - 1) / 5) * 5 + 1;
+  const pageGroupEnd = Math.min(pageGroupStart + 4, totalResultPages);
+  const visiblePageNumbers = Array.from(
+    { length: pageGroupEnd - pageGroupStart + 1 },
+    (_, index) => pageGroupStart + index
+  );
 
   return (
     <div id="app-root" className="min-h-screen bg-neutral-50 text-neutral-800 font-sans antialiased">
@@ -170,10 +192,6 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
-              <Sparkles className="w-3 h-3 mr-1 text-indigo-500" />
-              Gemini 연동
-            </span>
             <span className="text-xs text-neutral-400 font-mono hidden md:inline">v1.2.0</span>
           </div>
         </div>
@@ -192,6 +210,9 @@ export default function App() {
             <p className="text-xs md:text-sm text-indigo-200 leading-relaxed mb-4">
               국내 의료기기 관련 주요 부처의 R&D 지원 공고사이트로 부터 입력하신 핵심타겟키워드를 중심으로 공고문을 실시간 수집합니다.
               특히, 부처 포털 간 <strong>중복 공고</strong>를 제외하고 개별 공고문에 접속할 수 있도록 지원합니다.
+              <span className="block mt-1 text-[80%]">
+                (크롤링 단계에서, 포털에서 가져오는 페이지 수가 제한되어 있어 &quot;수집 대상 시작일&quot;을 빠른 일자로 설정하더라도 오래된 공고문은 표시되지 않을 수 있습니다.)
+              </span>
             </p>
             <div className="flex flex-wrap gap-2 text-[11px] text-indigo-100">
               <span className="bg-indigo-800/60 px-2.5 py-1 rounded-md border border-indigo-700/50">#1 IRIS 최우선</span>
@@ -244,17 +265,53 @@ export default function App() {
 
                 {/* Filter Keyword Choice */}
                 <div>
-                  <label className="block text-xs font-medium text-neutral-500 mb-1">핵심 타겟 키워드</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
-                    <input 
-                      type="text" 
-                      id="keywordInput"
-                      value={keyword}
-                      onChange={(e) => setKeyword(e.target.value)}
-                      placeholder="예: AI, 인공지능, 머신러닝"
-                      className="w-full pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white font-medium"
-                    />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-medium text-neutral-500">핵심 타겟 키워드</label>
+                    <div className="inline-flex rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
+                      {(["and", "or"] as const).map((operator) => (
+                        <button
+                          key={operator}
+                          type="button"
+                          onClick={() => setKeywordOperator(operator)}
+                          className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-md transition-colors ${
+                            keywordOperator === operator
+                              ? "bg-white text-indigo-700 shadow-xs"
+                              : "text-neutral-400 hover:text-neutral-700"
+                          }`}
+                        >
+                          {operator}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {Array.from({ length: KEYWORD_FIELD_COUNT }).map((_, index) => (
+                      <div className="relative" key={index}>
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
+                        <input
+                          type="text"
+                          id={`keywordInput-${index + 1}`}
+                          value={keywordInputs[index]}
+                          onFocus={() => setFocusedKeywordIndex(index)}
+                          onBlur={() => setFocusedKeywordIndex(null)}
+                          onChange={(e) =>
+                            setKeywordInputs((current) =>
+                              current.map((value, valueIndex) =>
+                                valueIndex === index ? e.target.value : value
+                              )
+                            )
+                          }
+                          placeholder={
+                            index === 0
+                              ? "예: 의료기기"
+                              : focusedKeywordIndex === index
+                                ? ""
+                                : "입력 가능"
+                          }
+                          className="w-full pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white font-medium placeholder:text-neutral-400"
+                        />
+                      </div>
+                    ))}
                   </div>
                   <p className="text-[10px] text-neutral-400 mt-1">포털 사이트 내 AI R&D 연계 공고를 매칭합니다.</p>
                 </div>
@@ -293,9 +350,7 @@ export default function App() {
                 {PORTALS_LIST.map((p) => (
                   <div key={p.rank} className="flex items-center justify-between py-1 border-b border-neutral-50/50 last:border-0 hover:bg-neutral-50 px-1 rounded">
                     <div className="flex items-center space-x-2 min-w-0">
-                      <span className={`w-4 h-4 rounded text-[9px] font-bold flex items-center justify-center shrink-0 ${
-                        p.rank <= 3 ? "bg-amber-100 text-amber-800 font-extrabold" : "bg-neutral-100 text-neutral-600"
-                      }`}>
+                      <span className="w-4 h-4 rounded text-[9px] font-bold flex items-center justify-center shrink-0 bg-neutral-100 text-neutral-600">
                         {p.rank}
                       </span>
                       <span className="truncate text-neutral-700 font-medium" title={p.name}>{p.name}</span>
@@ -465,7 +520,7 @@ export default function App() {
                           </div>
                         ) : (
                           <div className="divide-y divide-neutral-100">
-                            {filteredResults.map((item, idx) => {
+                            {visibleResults.map((item, idx) => {
                               // Identify portal serial/rank
                               const portalInfo = PORTALS_LIST.find(p => p.name === item.portal);
                               const pRank = portalInfo ? portalInfo.rank : null;
@@ -583,6 +638,47 @@ export default function App() {
                                 </motion.div>
                               );
                             })}
+                            {totalResultPages > 1 && (
+                              <div className="pt-4 flex flex-col items-center gap-2">
+                                <div className="flex flex-wrap items-center justify-center gap-1.5">
+                                  {pageGroupStart > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setCurrentResultPage(pageGroupStart - 1)}
+                                      className="min-w-8 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-neutral-500 transition-colors hover:bg-neutral-50 hover:text-neutral-800"
+                                    >
+                                      이전
+                                    </button>
+                                  )}
+                                  {visiblePageNumbers.map((pageNumber) => (
+                                    <button
+                                      key={pageNumber}
+                                      type="button"
+                                      onClick={() => setCurrentResultPage(pageNumber)}
+                                      className={`min-w-8 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                                        currentResultPageSafe === pageNumber
+                                          ? "border-indigo-500 bg-indigo-600 text-white"
+                                          : "border-neutral-200 bg-white text-neutral-600 hover:bg-indigo-50 hover:text-indigo-700"
+                                      }`}
+                                    >
+                                      {pageNumber}
+                                    </button>
+                                  ))}
+                                  {pageGroupEnd < totalResultPages && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setCurrentResultPage(pageGroupEnd + 1)}
+                                      className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100"
+                                    >
+                                      더보기
+                                    </button>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-neutral-400">
+                                  {resultPageStart + 1}-{resultPageStart + visibleResults.length}개 표시 중 / 총 {filteredResults.length}개
+                                </span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
