@@ -43,7 +43,6 @@ const PORTALS_LIST = [
 
 const RESULTS_PAGE_SIZE = 15;
 const KEYWORD_FIELD_COUNT = 3;
-type KeywordOperator = "and" | "or";
 
 function formatDateKST(date: Date): string {
   return new Intl.DateTimeFormat("en-CA", {
@@ -62,7 +61,6 @@ export default function App() {
   const [startDate, setStartDate] = useState(formatDateKST(thirtyDaysAgo));
   const [endDate, setEndDate] = useState(formatDateKST(now));
   const [keywordInputs, setKeywordInputs] = useState(["의료기기", "", ""]);
-  const [keywordOperator, setKeywordOperator] = useState<KeywordOperator>("and");
   
   const [loading, setLoading] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractResponse | null>(null);
@@ -101,8 +99,7 @@ export default function App() {
         body: JSON.stringify({
           startDate,
           endDate,
-          keywords: keywordInputs.map((value) => value.trim()).filter(Boolean),
-          keywordOperator
+          keywords: keywordInputs.map((value) => value.trim()).filter(Boolean)
         })
       });
 
@@ -268,20 +265,9 @@ export default function App() {
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-medium text-neutral-500">핵심 타겟 키워드</label>
                     <div className="inline-flex rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
-                      {(["and", "or"] as const).map((operator) => (
-                        <button
-                          key={operator}
-                          type="button"
-                          onClick={() => setKeywordOperator(operator)}
-                          className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-md transition-colors ${
-                            keywordOperator === operator
-                              ? "bg-white text-indigo-700 shadow-xs"
-                              : "text-neutral-400 hover:text-neutral-700"
-                          }`}
-                        >
-                          {operator}
-                        </button>
-                      ))}
+                      <span className="px-2.5 py-1 text-[10px] font-bold uppercase rounded-md bg-white text-indigo-700 shadow-xs">
+                        AND
+                      </span>
                     </div>
                   </div>
                   <div className="space-y-2">

@@ -14,7 +14,6 @@ interface ExtractBody {
   endDate?: string;
   keyword?: string;
   keywords?: string[];
-  keywordOperator?: "and" | "or";
 }
 
 interface AnnouncementItem {
@@ -85,15 +84,13 @@ function normalizeKeywords(body: ExtractBody): string[] {
     .slice(0, 3);
 }
 
-function announcementMatchesKeywords(item: AnnouncementItem, keywords: string[], operator: "and" | "or"): boolean {
+function announcementMatchesKeywords(item: AnnouncementItem, keywords: string[]): boolean {
   if (keywords.length === 0) return true;
 
   const haystack = [item.title, item.description, item.department, item.portal]
     .join(" ")
     .toLowerCase();
-  const matches = keywords.map((keyword) => haystack.includes(keyword.toLowerCase()));
-
-  return operator === "or" ? matches.some(Boolean) : matches.every(Boolean);
+  return keywords.every((keyword) => haystack.includes(keyword.toLowerCase()));
 }
 
 export async function handleExtract(req: ApiRequest, res: ApiResponse) {
@@ -101,21 +98,17 @@ export async function handleExtract(req: ApiRequest, res: ApiResponse) {
   const startDate = body.startDate;
   const endDate = body.endDate;
   const keywords = normalizeKeywords(body);
-  const keywordOperator = body.keywordOperator === "or" ? "or" : "and";
 
   if (!startDate || !endDate) {
     return res.status(400).json({ error: "startDate와 endDate는 필수 입력 항목입니다." });
   }
 
   console.log(
-    `[Extracting] Period: ${startDate} ~ ${endDate}, Keywords: ${keywords.join(` ${keywordOperator.toUpperCase()} `) || "(none)"}`
+    `[Extracting] Period: ${startDate} ~ ${endDate}, Keywords: ${keywords.join(" AND ") || "(none)"}`
   );
 
   const searchTerms = keywords.length > 0 ? keywords : [""];
-  const summaries =
-    keywordOperator === "or" && searchTerms.length > 1
-      ? await Promise.all(searchTerms.map((keyword) => scrapeAllPortals(startDate, endDate, keyword)))
-      : [await scrapeAllPortals(startDate, endDate, searchTerms[0])];
+  const summaries = [await scrapeAllPortals(startDate, endDate, searchTerms[0])];
 
   const mergedAnnouncements: ScrapedAnnouncement[] = [];
   const mergedSeen = new Set<string>();
@@ -139,7 +132,7 @@ export async function handleExtract(req: ApiRequest, res: ApiResponse) {
   const rawPool: AnnouncementItem[] = mergedAnnouncements.map((item) => ({
     ...item,
     priorityIndex: getPortalPriorityIndex(item.portal),
-  })).filter((item) => announcementMatchesKeywords(item, keywords, keywordOperator));
+  })).filter((item) => announcementMatchesKeywords(item, keywords));
 
   const finalPool: AnnouncementItem[] = [];
   const duplicatesLogged: {

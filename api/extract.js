@@ -633,26 +633,24 @@ function normalizeKeywords(body) {
   const values = Array.isArray(body.keywords) ? body.keywords : [body.keyword || ""];
   return values.map((value) => value.trim()).filter(Boolean).slice(0, 3);
 }
-function announcementMatchesKeywords(item, keywords, operator) {
+function announcementMatchesKeywords(item, keywords) {
   if (keywords.length === 0) return true;
   const haystack = [item.title, item.description, item.department, item.portal].join(" ").toLowerCase();
-  const matches = keywords.map((keyword) => haystack.includes(keyword.toLowerCase()));
-  return operator === "or" ? matches.some(Boolean) : matches.every(Boolean);
+  return keywords.every((keyword) => haystack.includes(keyword.toLowerCase()));
 }
 async function handleExtract(req, res) {
   const body = req.body || {};
   const startDate = body.startDate;
   const endDate = body.endDate;
   const keywords = normalizeKeywords(body);
-  const keywordOperator = body.keywordOperator === "or" ? "or" : "and";
   if (!startDate || !endDate) {
     return res.status(400).json({ error: "startDate\uC640 endDate\uB294 \uD544\uC218 \uC785\uB825 \uD56D\uBAA9\uC785\uB2C8\uB2E4." });
   }
   console.log(
-    `[Extracting] Period: ${startDate} ~ ${endDate}, Keywords: ${keywords.join(` ${keywordOperator.toUpperCase()} `) || "(none)"}`
+    `[Extracting] Period: ${startDate} ~ ${endDate}, Keywords: ${keywords.join(" AND ") || "(none)"}`
   );
   const searchTerms = keywords.length > 0 ? keywords : [""];
-  const summaries = keywordOperator === "or" && searchTerms.length > 1 ? await Promise.all(searchTerms.map((keyword) => scrapeAllPortals(startDate, endDate, keyword))) : [await scrapeAllPortals(startDate, endDate, searchTerms[0])];
+  const summaries = [await scrapeAllPortals(startDate, endDate, searchTerms[0])];
   const mergedAnnouncements = [];
   const mergedSeen = /* @__PURE__ */ new Set();
   const portalStats = {};
@@ -672,7 +670,7 @@ async function handleExtract(req, res) {
   const rawPool = mergedAnnouncements.map((item) => ({
     ...item,
     priorityIndex: getPortalPriorityIndex(item.portal)
-  })).filter((item) => announcementMatchesKeywords(item, keywords, keywordOperator));
+  })).filter((item) => announcementMatchesKeywords(item, keywords));
   const finalPool = [];
   const duplicatesLogged = [];
   const sortedRawPool = [...rawPool].sort((a, b) => {
