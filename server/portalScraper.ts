@@ -8,6 +8,8 @@ const FETCH_HEADERS = {
   "Accept-Language": "ko-KR,ko;q=0.9",
 };
 const FETCH_RETRY_DELAYS_MS = [600, 1500];
+/** 개별 요청 타임아웃. 차단/지연되는 포털이 함수 시간 예산을 잡아먹지 않도록 빨리 실패시킨다. */
+const FETCH_TIMEOUT_MS = 8000;
 
 export interface ScrapeSummary {
   announcements: ScrapedAnnouncement[];
@@ -105,6 +107,8 @@ async function fetchHtml(url: string, init?: RequestInit): Promise<string> {
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= FETCH_RETRY_DELAYS_MS.length; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     try {
       const response = await fetch(url, {
         ...init,
@@ -113,15 +117,18 @@ async function fetchHtml(url: string, init?: RequestInit): Promise<string> {
           ...(init?.headers || {}),
         },
         redirect: "follow",
+        signal: controller.signal,
       });
 
       if (response.ok) {
-        return response.text();
+        return await response.text();
       }
 
       lastError = new Error(`HTTP ${response.status} for ${url}`);
     } catch (error) {
       lastError = error;
+    } finally {
+      clearTimeout(timer);
     }
 
     const retryDelay = FETCH_RETRY_DELAYS_MS[attempt];
@@ -728,6 +735,8 @@ export async function scrapeAllPortals(
   const errors: { portal: string; message: string }[] = [];
   const globalSeen = new Set<string>();
 
+  // 포털은 순차로 수집한다. 일부 정부 포털이 동시 요청 시 검색 결과를 빈 페이지로
+  // 돌려주는(소프트 차단) 문제가 있어, 안정성을 위해 한 번에 하나씩 호출한다.
   for (const portal of PORTALS) {
     try {
       const scraped = await scrapePortal(portal, startDate, endDate, keyword);

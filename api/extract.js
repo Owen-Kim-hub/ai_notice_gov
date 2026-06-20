@@ -99,6 +99,7 @@ var FETCH_HEADERS = {
   "Accept-Language": "ko-KR,ko;q=0.9"
 };
 var FETCH_RETRY_DELAYS_MS = [600, 1500];
+var FETCH_TIMEOUT_MS = 8e3;
 function appendQuery(url, params) {
   const parsed = new URL(url);
   for (const [key, value] of Object.entries(params)) {
@@ -163,6 +164,8 @@ function matchesKeyword(text, keyword) {
 async function fetchHtml(url, init) {
   let lastError;
   for (let attempt = 0; attempt <= FETCH_RETRY_DELAYS_MS.length; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     try {
       const response = await fetch(url, {
         ...init,
@@ -170,14 +173,17 @@ async function fetchHtml(url, init) {
           ...FETCH_HEADERS,
           ...init?.headers || {}
         },
-        redirect: "follow"
+        redirect: "follow",
+        signal: controller.signal
       });
       if (response.ok) {
-        return response.text();
+        return await response.text();
       }
       lastError = new Error(`HTTP ${response.status} for ${url}`);
     } catch (error) {
       lastError = error;
+    } finally {
+      clearTimeout(timer);
     }
     const retryDelay = FETCH_RETRY_DELAYS_MS[attempt];
     if (retryDelay !== void 0) {

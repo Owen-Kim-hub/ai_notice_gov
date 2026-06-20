@@ -1,6 +1,7 @@
 {
   "buildCommand": "npm run build:vercel",
   "outputDirectory": "dist",
+  "regions": ["icn1"],
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
