@@ -211,6 +211,11 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center space-x-2">
+            <img
+              src="/wmIT-logo.png"
+              alt="원주의료기기산업진흥원"
+              className="h-7 w-auto object-contain"
+            />
             <span className="text-xs text-neutral-400 font-mono hidden md:inline">v1.2.0</span>
           </div>
         </div>
@@ -689,8 +694,8 @@ export default function App() {
                       <div>
                         <strong className="block mb-0.5">중복 공고문 판별 정책</strong>
                         <span>
-                          국가 R&D 시스템 특성상 동일한 주관부처 공고가 대국민 NTIS, 범부처 통합 IRIS, 산하기관 개별 사이트로 전파 및 미러링됩니다. 
-                          본 모듈은 캐릭터 단위의 문자 유사성 지수를 분석하여 동일과제를 식별하고, 첨부 순서에 따른 우선 수위 포털 <strong>내의 것만 남긴 후 미러링용 하위 순위 항목을 일괄 제거</strong>했습니다.
+                          국가 R&D 시스템 특성상 동일한 주관부처 공고가 대국민 NTIS, 범부처 통합 IRIS, 산하기관 개별 사이트에 중복으로 공고됩니다.
+                          본 모듈은 캐릭터 단위의 문자 유사성 지수를 분석하여 유사성 90%이상은 동일과제를 식별하고, 우선 순위 포털 <strong>내의 것만 남긴 후 하위 순위 항목을 일괄 제거</strong>했습니다.
                         </span>
                       </div>
                     </div>
