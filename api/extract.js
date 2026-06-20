@@ -616,7 +616,7 @@ async function scrapeAllPortals(startDate, endDate, keyword = "AI") {
   };
 }
 
-// server/extractLogic.ts
+// server/deduplication.ts
 var DUPLICATE_TITLE_SIMILARITY_THRESHOLD = 0.9;
 function getTitleSimilarity(t1, t2) {
   const clean = (value) => value.replace(/[\s()[\]\-_,.:/\d년월일상반기하반기공고재공고선정결과신규과제]/g, "").trim();
@@ -646,6 +646,50 @@ function getPortalPriorityIndex(portalName) {
   }
   return 999;
 }
+function toKeepDeleteRecord(item) {
+  return {
+    title: item.title,
+    portal: item.portal,
+    priority: (item.priorityIndex ?? 999) + 1,
+    date: item.date,
+    url: item.url
+  };
+}
+function deduplicateByTitle(items) {
+  const kept = [];
+  const duplicates = [];
+  const sorted = [...items].sort((a, b) => {
+    const priorityA = a.priorityIndex ?? 999;
+    const priorityB = b.priorityIndex ?? 999;
+    if (priorityA !== priorityB) return priorityA - priorityB;
+    return b.date.localeCompare(a.date);
+  });
+  for (const item of sorted) {
+    let duplicateOf = null;
+    for (const existing of kept) {
+      const similarity = getTitleSimilarity(item.title, existing.title);
+      if (similarity >= DUPLICATE_TITLE_SIMILARITY_THRESHOLD) {
+        duplicateOf = existing;
+        break;
+      }
+    }
+    if (duplicateOf) {
+      const similarityPercent = Math.round(
+        getTitleSimilarity(item.title, duplicateOf.title) * 100
+      );
+      duplicates.push({
+        kept: toKeepDeleteRecord(duplicateOf),
+        deleted: toKeepDeleteRecord(item),
+        reason: `\uC81C\uBAA9 \uC720\uC0AC\uB3C4 \uAE30\uC900 (${similarityPercent}%). \uACE0\uC21C\uC704 \uD3EC\uD138 [${duplicateOf.portal}] \uACF5\uACE0 \uBCF4\uC874 \uBC0F [${item.portal}] \uACF5\uACE0 \uD544\uD130`
+      });
+    } else {
+      kept.push(item);
+    }
+  }
+  return { kept, duplicates };
+}
+
+// server/extractLogic.ts
 function normalizeKeywords(body) {
   const values = Array.isArray(body.keywords) ? body.keywords : [body.keyword || ""];
   return values.map((value) => value.trim()).filter(Boolean).slice(0, 3);
@@ -655,10 +699,31 @@ function announcementMatchesKeywords(item, keywords) {
   const haystack = [item.title, item.description, item.department, item.portal].join(" ").toLowerCase();
   return keywords.every((keyword) => haystack.includes(keyword.toLowerCase()));
 }
+function buildAnnouncementPool(announcements, keywords) {
+  const seen = /* @__PURE__ */ new Set();
+  const unique = [];
+  for (const item of announcements) {
+    const key = `${item.portal}::${item.url}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(item);
+  }
+  return unique.map((item) => ({ ...item, priorityIndex: getPortalPriorityIndex(item.portal) })).filter((item) => announcementMatchesKeywords(item, keywords));
+}
+function buildWarning(errors, finalCount) {
+  let warning;
+  if (errors.length > 0) {
+    const failed = [...new Set(errors.map((error) => error.portal))].join(", ");
+    warning = `\uC77C\uBD80 \uD3EC\uD138(${failed})\uC5D0\uC11C \uACF5\uACE0\uB97C \uAC00\uC838\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uB098\uBA38\uC9C0 \uD3EC\uD138 \uACB0\uACFC\uB294 \uC815\uC0C1 \uBC18\uC601\uB418\uC5C8\uC2B5\uB2C8\uB2E4.`;
+  }
+  if (finalCount === 0) {
+    warning = warning ? `${warning} \uC870\uAC74\uC5D0 \uB9DE\uB294 \uACF5\uACE0\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.` : "\uC870\uAC74\uC5D0 \uB9DE\uB294 \uACF5\uACE0\uB97C \uCC3E\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uAC80\uC0C9 \uAE30\uAC04\uC774\uB098 \uD0A4\uC6CC\uB4DC\uB97C \uC870\uC815\uD574 \uBCF4\uC138\uC694.";
+  }
+  return warning;
+}
 async function handleExtract(req, res) {
   const body = req.body || {};
-  const startDate = body.startDate;
-  const endDate = body.endDate;
+  const { startDate, endDate } = body;
   const keywords = normalizeKeywords(body);
   if (!startDate || !endDate) {
     return res.status(400).json({ error: "startDate\uC640 endDate\uB294 \uD544\uC218 \uC785\uB825 \uD56D\uBAA9\uC785\uB2C8\uB2E4." });
@@ -666,88 +731,19 @@ async function handleExtract(req, res) {
   console.log(
     `[Extracting] Period: ${startDate} ~ ${endDate}, Keywords: ${keywords.join(" AND ") || "(none)"}`
   );
-  const searchTerms = keywords.length > 0 ? keywords : [""];
-  const summaries = [await scrapeAllPortals(startDate, endDate, searchTerms[0])];
-  const mergedAnnouncements = [];
-  const mergedSeen = /* @__PURE__ */ new Set();
-  const portalStats = {};
-  const errors = [];
-  for (const summary of summaries) {
-    for (const [portal, count] of Object.entries(summary.portalStats)) {
-      portalStats[portal] = (portalStats[portal] || 0) + count;
-    }
-    errors.push(...summary.errors);
-    for (const item of summary.announcements) {
-      const key = `${item.portal}::${item.url}`;
-      if (mergedSeen.has(key)) continue;
-      mergedSeen.add(key);
-      mergedAnnouncements.push(item);
-    }
-  }
-  const rawPool = mergedAnnouncements.map((item) => ({
-    ...item,
-    priorityIndex: getPortalPriorityIndex(item.portal)
-  })).filter((item) => announcementMatchesKeywords(item, keywords));
-  const finalPool = [];
-  const duplicatesLogged = [];
-  const sortedRawPool = [...rawPool].sort((a, b) => {
-    const priorityA = a.priorityIndex ?? 999;
-    const priorityB = b.priorityIndex ?? 999;
-    if (priorityA !== priorityB) return priorityA - priorityB;
-    return b.date.localeCompare(a.date);
-  });
-  for (const item of sortedRawPool) {
-    let isDuplicate = false;
-    let duplicateOf = null;
-    for (const existing of finalPool) {
-      const similarity = getTitleSimilarity(item.title, existing.title);
-      if (similarity >= DUPLICATE_TITLE_SIMILARITY_THRESHOLD) {
-        isDuplicate = true;
-        duplicateOf = existing;
-        break;
-      }
-    }
-    if (isDuplicate && duplicateOf) {
-      duplicatesLogged.push({
-        kept: {
-          title: duplicateOf.title,
-          portal: duplicateOf.portal,
-          priority: (duplicateOf.priorityIndex ?? 999) + 1,
-          date: duplicateOf.date,
-          url: duplicateOf.url
-        },
-        deleted: {
-          title: item.title,
-          portal: item.portal,
-          priority: (item.priorityIndex ?? 999) + 1,
-          date: item.date,
-          url: item.url
-        },
-        reason: `\uC81C\uBAA9 \uC720\uC0AC\uB3C4 \uAE30\uC900 (${Math.round(
-          getTitleSimilarity(item.title, duplicateOf.title) * 100
-        )}%). \uACE0\uC21C\uC704 \uD3EC\uD138 [${duplicateOf.portal}] \uACF5\uACE0 \uBCF4\uC874 \uBC0F [${item.portal}] \uACF5\uACE0 \uD544\uD130`
-      });
-    } else {
-      finalPool.push(item);
-    }
-  }
-  const sortedFinalPool = finalPool.sort((a, b) => b.date.localeCompare(a.date));
-  let warning;
-  if (errors.length > 0) {
-    const failed = [...new Set(errors.map((error) => error.portal))].join(", ");
-    warning = `\uC77C\uBD80 \uD3EC\uD138(${failed})\uC5D0\uC11C \uACF5\uACE0\uB97C \uAC00\uC838\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uB098\uBA38\uC9C0 \uD3EC\uD138 \uACB0\uACFC\uB294 \uC815\uC0C1 \uBC18\uC601\uB418\uC5C8\uC2B5\uB2C8\uB2E4.`;
-  }
-  if (sortedFinalPool.length === 0) {
-    warning = warning ? `${warning} \uC870\uAC74\uC5D0 \uB9DE\uB294 \uACF5\uACE0\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.` : "\uC870\uAC74\uC5D0 \uB9DE\uB294 \uACF5\uACE0\uB97C \uCC3E\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uAC80\uC0C9 \uAE30\uAC04\uC774\uB098 \uD0A4\uC6CC\uB4DC\uB97C \uC870\uC815\uD574 \uBCF4\uC138\uC694.";
-  }
+  const searchTerm = keywords.length > 0 ? keywords[0] : "";
+  const summary = await scrapeAllPortals(startDate, endDate, searchTerm);
+  const rawPool = buildAnnouncementPool(summary.announcements, keywords);
+  const { kept, duplicates } = deduplicateByTitle(rawPool);
+  const results = kept.sort((a, b) => b.date.localeCompare(a.date));
   return res.json({
-    results: sortedFinalPool,
-    duplicatesFiltered: duplicatesLogged,
+    results,
+    duplicatesFiltered: duplicates,
     portalCount: PORTALS.length,
     originalCount: rawPool.length,
-    finalCount: sortedFinalPool.length,
-    portalStats,
-    warning,
+    finalCount: results.length,
+    portalStats: summary.portalStats,
+    warning: buildWarning(summary.errors, results.length),
     isFallback: false
   });
 }

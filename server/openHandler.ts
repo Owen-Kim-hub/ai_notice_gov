@@ -1,11 +1,7 @@
 import { PORTALS } from "./portals";
+import type { ApiRequest, ApiResponse } from "./http.js";
 
-export type ApiRequest = { query: Record<string, string | string[] | undefined> };
-export type ApiResponse = {
-  status: (code: number) => ApiResponse;
-  setHeader: (name: string, value: string) => ApiResponse;
-  send: (body: string) => void;
-};
+export type { ApiRequest, ApiResponse } from "./http.js";
 
 const ALLOWED_LINK_HOSTS = PORTALS.flatMap((portal) => portal.domains);
 
@@ -35,7 +31,7 @@ function escapeHtmlAttr(value: string): string {
 }
 
 export function handleOpen(req: ApiRequest, res: ApiResponse) {
-  const rawUrl = typeof req.query.url === "string" ? req.query.url.trim() : "";
+  const rawUrl = typeof req.query?.url === "string" ? req.query.url.trim() : "";
   const targetUrl = normalizeUrl(rawUrl);
 
   if (!targetUrl || !isAllowedAnnouncementUrl(targetUrl)) {
