@@ -98,6 +98,7 @@ var FETCH_HEADERS = {
   "User-Agent": USER_AGENT,
   "Accept-Language": "ko-KR,ko;q=0.9"
 };
+var FETCH_RETRY_DELAYS_MS = [600, 1500];
 function appendQuery(url, params) {
   const parsed = new URL(url);
   for (const [key, value] of Object.entries(params)) {
@@ -137,6 +138,9 @@ function decodeJsEscaped(text) {
     return text;
   }
 }
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 function normalizeDate(value) {
   const match = value.match(/(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
   if (!match) return value.trim();
@@ -157,18 +161,30 @@ function matchesKeyword(text, keyword) {
   return false;
 }
 async function fetchHtml(url, init) {
-  const response = await fetch(url, {
-    ...init,
-    headers: {
-      ...FETCH_HEADERS,
-      ...init?.headers || {}
-    },
-    redirect: "follow"
-  });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} for ${url}`);
+  let lastError;
+  for (let attempt = 0; attempt <= FETCH_RETRY_DELAYS_MS.length; attempt++) {
+    try {
+      const response = await fetch(url, {
+        ...init,
+        headers: {
+          ...FETCH_HEADERS,
+          ...init?.headers || {}
+        },
+        redirect: "follow"
+      });
+      if (response.ok) {
+        return response.text();
+      }
+      lastError = new Error(`HTTP ${response.status} for ${url}`);
+    } catch (error) {
+      lastError = error;
+    }
+    const retryDelay = FETCH_RETRY_DELAYS_MS[attempt];
+    if (retryDelay !== void 0) {
+      await sleep(retryDelay);
+    }
   }
-  return response.text();
+  throw lastError instanceof Error ? lastError : new Error(`Failed to fetch ${url}`);
 }
 function buildAnnouncement(portal, title, url, date, description = "") {
   return {
@@ -601,6 +617,7 @@ async function scrapeAllPortals(startDate, endDate, keyword = "AI") {
 }
 
 // server/extractLogic.ts
+var DUPLICATE_TITLE_SIMILARITY_THRESHOLD = 0.9;
 function getTitleSimilarity(t1, t2) {
   const clean = (value) => value.replace(/[\s()[\]\-_,.:/\d년월일상반기하반기공고재공고선정결과신규과제]/g, "").trim();
   const c1 = clean(t1);
@@ -684,7 +701,7 @@ async function handleExtract(req, res) {
     let duplicateOf = null;
     for (const existing of finalPool) {
       const similarity = getTitleSimilarity(item.title, existing.title);
-      if (similarity >= 0.7) {
+      if (similarity >= DUPLICATE_TITLE_SIMILARITY_THRESHOLD) {
         isDuplicate = true;
         duplicateOf = existing;
         break;

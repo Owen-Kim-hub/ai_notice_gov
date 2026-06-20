@@ -69,7 +69,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"results" | "duplicates" | "portals">("results");
+  const [activeTab, setActiveTab] = useState<"results" | "duplicates">("results");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentResultPage, setCurrentResultPage] = useState(1);
   const [focusedKeywordIndex, setFocusedKeywordIndex] = useState<number | null>(null);
@@ -447,16 +447,6 @@ export default function App() {
                       </span>
                     )}
                   </button>
-                  <button
-                    onClick={() => setActiveTab("portals")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                      activeTab === "portals"
-                        ? "bg-white text-indigo-700 shadow-xs border border-neutral-200"
-                        : "text-neutral-500 hover:text-neutral-800"
-                    }`}
-                  >
-                    우선순위 지침서
-                  </button>
                 </div>
 
                 <div className="py-1.5 flex items-center space-x-2">
@@ -530,7 +520,6 @@ export default function App() {
                               // Identify portal serial/rank
                               const portalInfo = PORTALS_LIST.find(p => p.name === item.portal);
                               const pRank = portalInfo ? portalInfo.rank : null;
-                              const pRankText = pRank ? `${pRank}위` : "기타";
                               
                               return (
                                 <motion.div 
@@ -553,7 +542,7 @@ export default function App() {
                                               ? "bg-indigo-50 text-indigo-700 border-indigo-200"
                                               : "bg-neutral-100 text-neutral-700 border-neutral-200"
                                         }`}>
-                                          {item.portal} <span className="font-mono text-[9px] opacity-80">(우선순위 {pRankText})</span>
+                                          {item.portal}
                                         </span>
                                         <span className="text-[10px] text-neutral-400 font-medium truncate">
                                           {item.department}
@@ -635,7 +624,7 @@ export default function App() {
                                         ) : (
                                           <>
                                             <Search className="w-2.5 h-2.5 text-neutral-400 shrink-0" />
-                                            <span>제목 복사 & 포털 검색</span>
+                                            <span>홈페이지</span>
                                           </>
                                         )}
                                       </button>
@@ -769,59 +758,6 @@ export default function App() {
                         )}
                       </div>
                     )}
-                  </div>
-                )}
-
-                {/* 3. Portals priority reference tab */}
-                {activeTab === "portals" && (
-                  <div className="space-y-4">
-                    <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-xs text-indigo-900 leading-relaxed font-noto">
-                      <p className="font-bold text-sm mb-1">📌 중복 정합성의 우선순위 원칙</p>
-                      <p className="mb-2">
-                        첨부 문서에서 제시한 순위에 따라 <strong>범부처통합연구지원시스템(IRIS)</strong>이 원조이자 최우선 수집 포털로 인정됩니다.
-                        중복되는 공고가 탐지될 경우 이 계층 우선구조에 의해 상위 순위 포털 정보만 유지되고 하위 순위 항목들은 자동 여과 및 삭제(정리)됩니다.
-                      </p>
-                      <p className="font-bold">계층 순위 예시:</p>
-                      <p>
-                        "2026년도 국가 과제 공고" 가 <strong className="text-indigo-800">[범부처통합연구지원시스템 (IRIS)] (1위)</strong> 과 <strong className="text-indigo-800">[국가과학기술지식정보서비스 (NTIS)] (2위)</strong> 양측에 게재된 경우, 
-                        우선의 원칙에 의해 <u>NTIS의 과제가 자동 삭제</u>되고 <u>IRIS의 과제만 보존</u>됩니다.
-                      </p>
-                    </div>
-
-                    <div className="border border-neutral-200 rounded-xl overflow-hidden shadow-xs bg-white">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                          <tr className="bg-neutral-50 border-b border-neutral-200 font-bold text-neutral-600 font-noto">
-                            <th className="py-2.5 px-3 w-16 text-center">우선순위</th>
-                            <th className="py-2.5 px-3">연구진흥 포털명</th>
-                            <th className="py-2.5 px-3">가중 보정 범위 및 도메인</th>
-                            <th className="py-2.5 px-3">포털 홈페이지 고정 주소</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-neutral-100 font-noto">
-                          {PORTALS_LIST.map((p) => (
-                            <tr key={p.rank} className="hover:bg-neutral-50/50">
-                              <td className="py-2.5 px-3 text-center font-bold text-neutral-500 font-mono">{p.rank}위</td>
-                              <td className="py-2.5 px-3 font-semibold text-neutral-800">{p.name}</td>
-                              <td className="py-2.5 px-3 font-mono text-[10px] text-neutral-500">
-                                {p.rank === 1 ? "최우선 (IRIS 원본)" : p.rank === 12 ? "보건의료 융합" : "R&D 중복유통 보정 대상"}
-                              </td>
-                              <td className="py-2.5 px-3 text-neutral-500">
-                                <a 
-                                  href={p.url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
-                                  className="text-xs text-indigo-600 hover:underline flex items-center space-x-1"
-                                >
-                                  <span className="truncate max-w-[200px] inline-block">{p.url}</span>
-                                  <ExternalLink className="w-3 h-3 shrink-0" />
-                                </a>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
                   </div>
                 )}
 

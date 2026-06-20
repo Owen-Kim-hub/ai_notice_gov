@@ -1,6 +1,8 @@
 import { PORTALS, type ScrapedAnnouncement } from "./portals";
 import { scrapeAllPortals } from "./portalScraper";
 
+const DUPLICATE_TITLE_SIMILARITY_THRESHOLD = 0.9;
+
 export type ApiRequest = { body?: unknown; query?: Record<string, unknown> };
 export type ApiResponse = {
   status: (code: number) => ApiResponse;
@@ -154,7 +156,7 @@ export async function handleExtract(req: ApiRequest, res: ApiResponse) {
 
     for (const existing of finalPool) {
       const similarity = getTitleSimilarity(item.title, existing.title);
-      if (similarity >= 0.7) {
+      if (similarity >= DUPLICATE_TITLE_SIMILARITY_THRESHOLD) {
         isDuplicate = true;
         duplicateOf = existing;
         break;

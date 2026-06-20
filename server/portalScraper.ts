@@ -7,6 +7,7 @@ const FETCH_HEADERS = {
   "User-Agent": USER_AGENT,
   "Accept-Language": "ko-KR,ko;q=0.9",
 };
+const FETCH_RETRY_DELAYS_MS = [600, 1500];
 
 export interface ScrapeSummary {
   announcements: ScrapedAnnouncement[];
@@ -74,6 +75,10 @@ function decodeJsEscaped(text: string): string {
   }
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function normalizeDate(value: string): string {
   const match = value.match(/(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
   if (!match) return value.trim();
@@ -97,20 +102,35 @@ function matchesKeyword(text: string, keyword: string): boolean {
 }
 
 async function fetchHtml(url: string, init?: RequestInit): Promise<string> {
-  const response = await fetch(url, {
-    ...init,
-    headers: {
-      ...FETCH_HEADERS,
-      ...(init?.headers || {}),
-    },
-    redirect: "follow",
-  });
+  let lastError: unknown;
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} for ${url}`);
+  for (let attempt = 0; attempt <= FETCH_RETRY_DELAYS_MS.length; attempt++) {
+    try {
+      const response = await fetch(url, {
+        ...init,
+        headers: {
+          ...FETCH_HEADERS,
+          ...(init?.headers || {}),
+        },
+        redirect: "follow",
+      });
+
+      if (response.ok) {
+        return response.text();
+      }
+
+      lastError = new Error(`HTTP ${response.status} for ${url}`);
+    } catch (error) {
+      lastError = error;
+    }
+
+    const retryDelay = FETCH_RETRY_DELAYS_MS[attempt];
+    if (retryDelay !== undefined) {
+      await sleep(retryDelay);
+    }
   }
 
-  return response.text();
+  throw lastError instanceof Error ? lastError : new Error(`Failed to fetch ${url}`);
 }
 
 function buildAnnouncement(
