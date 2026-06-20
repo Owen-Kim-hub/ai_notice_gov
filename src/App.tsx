@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   motion, 
   AnimatePresence 
@@ -70,6 +70,7 @@ export default function App() {
   const [currentResultPage, setCurrentResultPage] = useState(1);
   const [focusedKeywordIndex, setFocusedKeywordIndex] = useState<number | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const latestExtractRequestId = useRef(0);
 
   const handleCopyText = (text: string, id: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -88,8 +89,11 @@ export default function App() {
   }, [extractedData, searchTerm]);
 
   const handleExtract = async () => {
+    const requestId = latestExtractRequestId.current + 1;
+    latestExtractRequestId.current = requestId;
     setLoading(true);
     setError(null);
+    setExtractedData(null);
     try {
       const response = await fetch("/api/extract", {
         method: "POST",
@@ -108,11 +112,17 @@ export default function App() {
       }
 
       const data: ExtractResponse = await response.json();
-      setExtractedData(data);
+      if (latestExtractRequestId.current === requestId) {
+        setExtractedData(data);
+      }
     } catch (err: any) {
-      setError(err?.message || "네트워크 통신 오류가 발생했습니다.");
+      if (latestExtractRequestId.current === requestId) {
+        setError(err?.message || "네트워크 통신 오류가 발생했습니다.");
+      }
     } finally {
-      setLoading(false);
+      if (latestExtractRequestId.current === requestId) {
+        setLoading(false);
+      }
     }
   };
 
