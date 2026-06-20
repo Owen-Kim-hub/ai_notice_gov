@@ -4,7 +4,7 @@ import { PORTALS_LIST } from "../constants";
 export function PortalList() {
   return (
     <div className="bg-white rounded-2xl border border-neutral-200 p-5 shadow-sm">
-      <h3 className="font-semibold text-xs text-neutral-400 uppercase tracking-wider mb-3">연동 및 보정 포털 리스트 (총 {PORTALS_LIST.length}개)</h3>
+      <h3 className="font-semibold text-xs text-neutral-400 uppercase tracking-wider mb-3">연동 및 보정 포털 리스트</h3>
       <div className="space-y-1.5 text-xs">
         {PORTALS_LIST.map((p) => (
           <div key={p.rank} className="flex items-center justify-between py-1 border-b border-neutral-50/50 last:border-0 hover:bg-neutral-50 px-1 rounded">

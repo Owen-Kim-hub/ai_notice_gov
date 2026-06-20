@@ -25,12 +25,6 @@ var PORTALS = [
     department: "\uC0B0\uC5C5\uD1B5\uC0C1\uC790\uC6D0\uBD80"
   },
   {
-    name: "\uD55C\uAD6D\uBCF4\uAC74\uC0B0\uC5C5\uC9C4\uD765\uC6D0 (KHIDI)",
-    domains: ["khidi.or.kr"],
-    listUrl: "https://www.khidi.or.kr/board?menuId=MENU01108",
-    department: "\uBCF4\uAC74\uBCF5\uC9C0\uBD80"
-  },
-  {
     name: "\uC911\uC18C\uAE30\uC5C5 \uAE30\uC220\uAC1C\uBC1C\uC0AC\uC5C5 \uC885\uD569\uAD00\uB9AC\uC2DC\uC2A4\uD15C (smtech)",
     domains: ["smtech.go.kr"],
     listUrl: "https://www.smtech.go.kr/front/ifg/no/notice02_list.do",
@@ -43,16 +37,16 @@ var PORTALS = [
     department: "\uBCF4\uAC74\uBCF5\uC9C0\uBD80"
   },
   {
-    name: "\uC758\uB8CC\uAE30\uAE30\uC0B0\uC5C5 \uC885\uD569\uC815\uBCF4\uC2DC\uC2A4\uD15C",
-    domains: ["khidi.or.kr"],
-    listUrl: "https://www.khidi.or.kr/board?menuId=MENU01484&siteId=SITE00039",
-    department: "\uBCF4\uAC74\uBCF5\uC9C0\uBD80"
-  },
-  {
     name: "\uC0B0\uC5C5\uD1B5\uC0C1\uC790\uC6D0\uBD80",
     domains: ["motir.go.kr", "motie.go.kr"],
     listUrl: "https://www.motir.go.kr/kor/article/ATCL2826a2625",
     department: "\uC0B0\uC5C5\uD1B5\uC0C1\uC790\uC6D0\uBD80"
+  },
+  {
+    name: "\uC911\uC18C\uBCA4\uCC98\uAE30\uC5C5\uBD80",
+    domains: ["mss.go.kr"],
+    listUrl: "https://www.mss.go.kr/site/smba/ex/bbs/List.do?cbIdx=310",
+    department: "\uC911\uC18C\uBCA4\uCC98\uAE30\uC5C5\uBD80"
   },
   {
     name: "\uBCF4\uAC74\uBCF5\uC9C0\uBD80",
@@ -79,16 +73,10 @@ var PORTALS = [
     department: "\uC5F0\uAD6C\uAC1C\uBC1C\uD2B9\uAD6C\uC9C4\uD765\uC7AC\uB2E8"
   },
   {
-    name: "(\uCC38\uACE0) \uAC15\uC6D0\uC9C0\uC5ED\uC0B0\uC5C5\uC9C4\uD765\uC6D0",
+    name: "\uAC15\uC6D0\uC9C0\uC5ED\uC0B0\uC5C5\uC9C4\uD765\uC6D0",
     domains: ["riis.or.kr"],
     listUrl: "https://www.riis.or.kr/html/pbanc/pbancList.do",
     department: "\uAC15\uC6D0\uC9C0\uC5ED\uC0B0\uC5C5\uC9C4\uD765\uC6D0"
-  },
-  {
-    name: "\uC911\uC18C\uBCA4\uCC98\uAE30\uC5C5\uBD80",
-    domains: ["mss.go.kr"],
-    listUrl: "https://www.mss.go.kr/site/smba/ex/bbs/List.do?cbIdx=310",
-    department: "\uC911\uC18C\uBCA4\uCC98\uAE30\uC5C5\uBD80"
   }
 ];
 

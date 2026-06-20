@@ -14,6 +14,9 @@ export interface PortalDefinition {
   department: string;
 }
 
+// 우선순위 순서. 낮은 인덱스일수록 중복 제거 시 우선 보존된다.
+// khidi.or.kr 두 포털(한국보건산업진흥원·의료기기산업 종합정보시스템)은 클라우드 IP를
+// 차단하여 Vercel에서 수집이 불가능하므로 추출 대상에서 제외한다.
 export const PORTALS: PortalDefinition[] = [
   {
     name: "범부처통합연구지원시스템 (IRIS)",
@@ -40,12 +43,6 @@ export const PORTALS: PortalDefinition[] = [
     department: "산업통상자원부",
   },
   {
-    name: "한국보건산업진흥원 (KHIDI)",
-    domains: ["khidi.or.kr"],
-    listUrl: "https://www.khidi.or.kr/board?menuId=MENU01108",
-    department: "보건복지부",
-  },
-  {
     name: "중소기업 기술개발사업 종합관리시스템 (smtech)",
     domains: ["smtech.go.kr"],
     listUrl: "https://www.smtech.go.kr/front/ifg/no/notice02_list.do",
@@ -58,16 +55,16 @@ export const PORTALS: PortalDefinition[] = [
     department: "보건복지부",
   },
   {
-    name: "의료기기산업 종합정보시스템",
-    domains: ["khidi.or.kr"],
-    listUrl: "https://www.khidi.or.kr/board?menuId=MENU01484&siteId=SITE00039",
-    department: "보건복지부",
-  },
-  {
     name: "산업통상자원부",
     domains: ["motir.go.kr", "motie.go.kr"],
     listUrl: "https://www.motir.go.kr/kor/article/ATCL2826a2625",
     department: "산업통상자원부",
+  },
+  {
+    name: "중소벤처기업부",
+    domains: ["mss.go.kr"],
+    listUrl: "https://www.mss.go.kr/site/smba/ex/bbs/List.do?cbIdx=310",
+    department: "중소벤처기업부",
   },
   {
     name: "보건복지부",
@@ -94,15 +91,9 @@ export const PORTALS: PortalDefinition[] = [
     department: "연구개발특구진흥재단",
   },
   {
-    name: "(참고) 강원지역산업진흥원",
+    name: "강원지역산업진흥원",
     domains: ["riis.or.kr"],
     listUrl: "https://www.riis.or.kr/html/pbanc/pbancList.do",
     department: "강원지역산업진흥원",
-  },
-  {
-    name: "중소벤처기업부",
-    domains: ["mss.go.kr"],
-    listUrl: "https://www.mss.go.kr/site/smba/ex/bbs/List.do?cbIdx=310",
-    department: "중소벤처기업부",
   },
 ];
