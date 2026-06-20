@@ -53,13 +53,17 @@ function formatDateKST(date: Date): string {
   }).format(date);
 }
 
-export default function App() {
-  // Initialize date range: default from 30 days ago to today, based on KST (Korea Standard Time)
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+function getDateDaysBefore(date: Date, days: number): Date {
+  return new Date(date.getTime() - days * 24 * 60 * 60 * 1000);
+}
 
-  const [startDate, setStartDate] = useState(formatDateKST(thirtyDaysAgo));
-  const [endDate, setEndDate] = useState(formatDateKST(now));
+export default function App() {
+  // Initialize date range: default from 15 days before the end date, based on KST (Korea Standard Time)
+  const now = new Date();
+  const defaultEndDate = formatDateKST(now);
+
+  const [startDate, setStartDate] = useState(formatDateKST(getDateDaysBefore(now, 15)));
+  const [endDate, setEndDate] = useState(defaultEndDate);
   const [keywordInputs, setKeywordInputs] = useState(["의료기기", "", ""]);
   
   const [loading, setLoading] = useState(false);
@@ -123,6 +127,14 @@ export default function App() {
       if (latestExtractRequestId.current === requestId) {
         setLoading(false);
       }
+    }
+  };
+
+  const handleEndDateChange = (value: string) => {
+    setEndDate(value);
+    const end = new Date(`${value}T00:00:00`);
+    if (!Number.isNaN(end.getTime())) {
+      setStartDate(formatDateKST(getDateDaysBefore(end, 15)));
     }
   };
 
@@ -265,7 +277,7 @@ export default function App() {
                     type="date"
                     id="endDate"
                     value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={(e) => handleEndDateChange(e.target.value)}
                     className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white shadow-2xs"
                   />
                 </div>
