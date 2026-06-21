@@ -537,28 +537,48 @@ export async function scrapeRiis(
   endDate: string,
   keyword: string
 ): Promise<ScrapedAnnouncement[]> {
-  const listUrl = appendQuery(portal.listUrl, {
-    searchKeyword: keyword,
-    searchCondition: "title",
-  });
-  const html = await fetchHtml(listUrl);
+  // 사이트 개편(2026): SPA로 전환되어 목록이 초기 HTML에 없다. 목록은
+  // POST /service/pbanc/selectPbancList 가 JSON으로 반환한다. JSON의 pbancYmd가
+  // 공고일이므로 "공고일 기준" 필터에 그대로 사용한다.
+  const apiBody = await fetchHtml(
+    "https://www.riis.or.kr/service/pbanc/selectPbancList",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Referer: portal.listUrl,
+      },
+      // recordCountPerPage를 크게 잡아 가용 공고를 한 번에 가져온다(서버 상한 ~49).
+      body: JSON.stringify({ recordCountPerPage: 100, pageIndex: 1 }),
+    }
+  );
+
   const results: ScrapedAnnouncement[] = [];
   const seen = new Set<string>();
 
-  const rowPattern =
-    /pbancDetail\.do\?pbancId=([^&"']+)[^"]*"[^>]*>([\s\S]*?)<\/a>[\s\S]*?(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/gi;
+  let parsed: { result?: { rsltList?: Record<string, unknown>[] } };
+  try {
+    parsed = JSON.parse(apiBody);
+  } catch {
+    return results;
+  }
 
-  let match: RegExpExecArray | null;
-  while ((match = rowPattern.exec(html)) !== null) {
-    const [, pbancId, rawTitle, y, m, d] = match;
-    const title = stripHtml(rawTitle);
-    const rawDate = `${y}-${m}-${d}`;
+  const list = parsed.result?.rsltList ?? [];
+  for (const item of list) {
+    const title = stripHtml(
+      String(item.dtlPbancNm || item.pbancNm || "")
+    );
+    if (!title) continue;
+    const rawDate = normalizeDate(String(item.pbancYmd || ""));
     if (!matchesKeyword(title, keyword)) continue;
     if (!inDateRange(rawDate, startDate, endDate)) continue;
 
-    const detailUrl = appendQuery("https://www.riis.or.kr/html/pbanc/pbancDetail.do", {
-      pbancId,
-    });
+    const mngNo = item.pbancMngNo ? String(item.pbancMngNo) : "";
+    const detailUrl = mngNo
+      ? appendQuery("https://www.riis.or.kr/html/pbanc/pbancView.do", {
+          pbancMngNo: mngNo,
+        })
+      : portal.listUrl;
 
     pushUnique(results, buildAnnouncement(portal, title, detailUrl, rawDate), seen);
   }
@@ -580,14 +600,17 @@ export async function scrapeInnopolis(
   const results: ScrapedAnnouncement[] = [];
   const seen = new Set<string>();
 
+  // 사이트 개편(2026): 목록은 제목 <strong class="txt-title">, 접수기간
+  // <span class="date">시작일~종료일</span>, 상세링크 /board/view?...&linkId=… 구조.
+  // 검색어는 서버에서 필터링되지 않으므로 제목 매칭은 클라이언트단에서 수행한다.
+  // 목록에 공고일이 없어 접수 시작일을 대표 날짜(공고일 기준)로 사용한다.
   const rowPattern =
-    /href="([^"]*\/newBusiness\/view[^"]*)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/gi;
+    /<strong class="txt-title">([\s\S]*?)<\/strong>\s*<span class="date">\s*(\d{4}-\d{2}-\d{2})(?:\s*~\s*\d{4}-\d{2}-\d{2})?\s*<\/span>[\s\S]*?href="([^"]*\/board\/view[^"]*)"/gi;
 
   let match: RegExpExecArray | null;
   while ((match = rowPattern.exec(html)) !== null) {
-    const [, rawHref, rawTitle, y, m, d] = match;
+    const [, rawTitle, rawDate, rawHref] = match;
     const title = stripHtml(rawTitle);
-    const rawDate = `${y}-${m}-${d}`;
     if (!matchesKeyword(title, keyword)) continue;
     if (!inDateRange(rawDate, startDate, endDate)) continue;
 
@@ -604,39 +627,31 @@ export async function scrapeHtdream(
   endDate: string,
   keyword: string
 ): Promise<ScrapedAnnouncement[]> {
-  const listUrl = appendQuery(portal.listUrl, {
-    searchCondition: "1",
-    searchKeyword: keyword,
-  });
-  const html = await fetchHtml(listUrl);
+  // searchCondition 등 검색 파라미터를 붙이면 빈 목록 페이지가 반환된다.
+  // 기본 목록(최신 공고)을 받아 키워드는 클라이언트단에서 필터링한다.
+  const html = await fetchHtml(portal.listUrl);
   const results: ScrapedAnnouncement[] = [];
   const seen = new Set<string>();
 
+  // 사이트 개편(2026): 목록 행은 onclick="fn_select2('<pbanId>','<openYn>')" + 제목,
+  // 접수기간 <td>시작일 ~ 종료일</td> 구조. 상세는 addPubAmtView2.do GET으로 접근 가능.
+  // 목록에 공고일이 없어 접수 시작일을 대표 날짜(공고일 기준)로 사용한다.
   const rowPattern =
-    /(?:PubAmtDetail\.do\?pubAmtSeq=(\d+)|addPubAmtView2\.do[^"']*pubAmtSeq=(\d+))[^"]*"[^>]*>([\s\S]*?)<\/a>[\s\S]*?(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/gi;
+    /onclick="fn_select2\('(\d+)',\s*'([^']*)'\)[^>]*>([\s\S]*?)<\/a>[\s\S]*?(\d{4}-\d{2}-\d{2})/gi;
 
   let match: RegExpExecArray | null;
   while ((match = rowPattern.exec(html)) !== null) {
-    const pubAmtSeq = match[1] || match[2];
-    const rawTitle = match[3];
-    const rawDate = `${match[4]}-${match[5]}-${match[6]}`;
+    const [, pbanId, openYn, rawTitle, rawDate] = match;
     const title = stripHtml(rawTitle);
     if (!matchesKeyword(title, keyword)) continue;
     if (!inDateRange(rawDate, startDate, endDate)) continue;
 
     const detailUrl = appendQuery(
-      "https://www.htdream.kr/main/pubAmt/PubAmtDetail.do",
-      { pubAmtSeq }
+      "https://www.htdream.kr/main/pubAmt/addPubAmtView2.do",
+      { pbanId, pbanOpenYn: openYn || "Y", actionMode: "view" }
     );
 
     pushUnique(results, buildAnnouncement(portal, title, detailUrl, rawDate), seen);
-  }
-
-  if (results.length === 0) {
-    return scrapeGenericListPage(portal, startDate, endDate, keyword, {
-      detailPattern: /(PubAmtDetail\.do\?[^"' ]+|addPubAmtView2\.do[^"' ]+)/gi,
-      baseUrl: "https://www.htdream.kr/main/pubAmt/",
-    });
   }
 
   return results;
@@ -695,6 +710,35 @@ export async function scrapeGenericListPage(
   return results.slice(0, 40);
 }
 
+export async function scrapeMotir(
+  portal: PortalDefinition,
+  startDate: string,
+  endDate: string,
+  keyword: string
+): Promise<ScrapedAnnouncement[]> {
+  const html = await fetchHtml(portal.listUrl);
+  const results: ScrapedAnnouncement[] = [];
+  const seen = new Set<string>();
+
+  // 게시판 행: 공고번호 | <a href="javascript:article.view('<id>')"><i>제목</i></a> |
+  // 담당부서 | 등록일(공고일) | 조회수. 상세는 GET {listUrl}/{id}/view 로 접근 가능.
+  const rowPattern =
+    /article\.view\('(\d+)'\)[^>]*>([\s\S]*?)<\/a>[\s\S]*?(\d{4}-\d{2}-\d{2})/gi;
+
+  let match: RegExpExecArray | null;
+  while ((match = rowPattern.exec(html)) !== null) {
+    const [, articleId, rawTitle, rawDate] = match;
+    const title = stripHtml(rawTitle);
+    if (!matchesKeyword(title, keyword)) continue;
+    if (!inDateRange(rawDate, startDate, endDate)) continue;
+
+    const detailUrl = `${portal.listUrl}/${articleId}/view`;
+    pushUnique(results, buildAnnouncement(portal, title, detailUrl, rawDate), seen);
+  }
+
+  return results;
+}
+
 async function scrapePortal(
   portal: PortalDefinition,
   startDate: string,
@@ -704,6 +748,9 @@ async function scrapePortal(
   const domain = portal.domains[0];
 
   switch (domain) {
+    case "motir.go.kr":
+    case "motie.go.kr":
+      return scrapeMotir(portal, startDate, endDate, keyword);
     case "iris.go.kr":
       return scrapeIris(portal, startDate, endDate, keyword);
     case "ntis.go.kr":
