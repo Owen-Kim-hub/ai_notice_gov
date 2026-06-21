@@ -11,7 +11,7 @@ export function AppHeader() {
             <FileSpreadsheet className="w-5 h-5" id="header-icon" />
           </div>
           <div>
-            <h1 className="text-base font-semibold tracking-tight text-neutral-900" id="header-title">AI 공고 추출기</h1>
+            <h1 className="text-base font-semibold tracking-tight text-neutral-900" id="header-title">AI 사업공고 추출기</h1>
             <p className="text-[10px] text-neutral-500 font-mono -mt-0.5">National R&D AI Notice Deduplicator</p>
           </div>
         </div>
