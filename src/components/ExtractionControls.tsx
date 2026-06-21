@@ -29,7 +29,7 @@ export function ExtractionControls({
     <div className="bg-white rounded-2xl border border-neutral-200 p-5 shadow-sm">
       <div className="flex items-center space-x-2 pb-4 mb-4 border-b border-neutral-100">
         <SlidersHorizontal className="w-4 h-4 text-indigo-600" />
-        <h3 className="font-semibold text-sm text-neutral-900">추출 최적화 설정</h3>
+        <h3 className="font-semibold text-sm text-neutral-900">추출 최적화 설정 (공고일 기준)</h3>
       </div>
 
       {/* Extraction Target Period Fields */}
