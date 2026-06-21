@@ -9,3 +9,6 @@ coverage/
 ai-notice-gov.zip
 
 .vercel
+.claude/
+output/
+tmp/
