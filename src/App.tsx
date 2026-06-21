@@ -13,13 +13,13 @@ import { ResultsSection, ResultsTab } from "./components/ResultsSection";
 import { AppFooter } from "./components/AppFooter";
 
 export default function App() {
-  // Initialize date range: default from 15 days before the end date, based on KST (Korea Standard Time)
+  // Initialize date range: default from 30 days before the end date, based on KST (Korea Standard Time)
   const now = new Date();
   const defaultEndDate = formatDateKST(now);
 
   const [startDate, setStartDate] = useState(formatDateKST(getDateDaysBefore(now, DEFAULT_RANGE_DAYS)));
   const [endDate, setEndDate] = useState(defaultEndDate);
-  const [keywordInputs, setKeywordInputs] = useState(["의료기기", "", ""]);
+  const [keywordInputs, setKeywordInputs] = useState(["중소기업", "", ""]);
 
   const [activeTab, setActiveTab] = useState<ResultsTab>("results");
   const [searchTerm, setSearchTerm] = useState("");
