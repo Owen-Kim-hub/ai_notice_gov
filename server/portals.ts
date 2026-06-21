@@ -26,12 +26,6 @@ export const PORTALS: PortalDefinition[] = [
     department: "과학기술정보통신부",
   },
   {
-    name: "범부처통합연구지원시스템 (IRIS, 접수예정)",
-    domains: ["iris.go.kr"],
-    listUrl: "https://www.iris.go.kr/contents/retrieveBsnsAncmBtinSituListView.do?ancmPrg=ancmPre",
-    department: "과학기술정보통신부",
-  },
-  {
     name: "국가과학기술지식정보서비스 (NTIS)",
     domains: ["ntis.go.kr"],
     listUrl: "https://www.ntis.go.kr/rndgate/eg/un/ra/mng.do",
