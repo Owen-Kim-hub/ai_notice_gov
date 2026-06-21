@@ -15,8 +15,8 @@ export interface PortalDefinition {
 }
 
 // 우선순위 순서. 낮은 인덱스일수록 중복 제거 시 우선 보존된다.
-// khidi.or.kr 두 포털(한국보건산업진흥원·의료기기산업 종합정보시스템)은 클라우드 IP를
-// 차단하여 Vercel에서 수집이 불가능하므로 추출 대상에서 제외한다.
+// 한국보건산업진흥원(khidi.or.kr MENU01108)은 재검증 결과 Vercel 클라우드 IP에서도
+// 안정적으로 수집되어 포함한다. 의료기기산업 종합정보시스템(MENU01484)은 여전히 제외.
 export const PORTALS: PortalDefinition[] = [
   {
     name: "범부처통합연구지원시스템 (IRIS, 접수중)",
@@ -102,7 +102,6 @@ export const PORTALS: PortalDefinition[] = [
     listUrl: "https://www.riis.or.kr/html/pbanc/pbancList.do",
     department: "강원지역산업진흥원",
   },
-  // [임시] Vercel 클라우드 IP 신뢰성 재검증용. 측정 후 유지/제외 결정.
   {
     name: "한국보건산업진흥원 (KHIDI)",
     domains: ["khidi.or.kr"],

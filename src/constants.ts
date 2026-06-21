@@ -19,7 +19,7 @@ export const PORTALS_LIST: PortalListItem[] = [
   { rank: 12, name: "보건의료기술 종합정보시스템 (HTDream)", url: "https://www.htdream.kr/main/pubAmt/PubAmtList.do" },
   { rank: 13, name: "연구개발특구", url: "https://www.innopolis.or.kr/newBusiness?menuId=MENU01028" },
   { rank: 14, name: "강원지역산업진흥원", url: "https://www.riis.or.kr/html/pbanc/pbancList.do" },
-  { rank: 15, name: "한국보건산업진흥원 (KHIDI) (공고추출 제외)", url: "https://www.khidi.or.kr/board?menuId=MENU01108" },
+  { rank: 15, name: "한국보건산업진흥원 (KHIDI)", url: "https://www.khidi.or.kr/board?menuId=MENU01108" },
   { rank: 16, name: "의료기기산업 종합정보시스템 (공고추출 제외)", url: "https://www.khidi.or.kr/board?menuId=MENU01484&siteId=SITE00039" }
 ];
 
