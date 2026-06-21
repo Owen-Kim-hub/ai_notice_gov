@@ -10,6 +10,11 @@ const FETCH_HEADERS = {
 const FETCH_RETRY_DELAYS_MS = [600, 1500];
 /** 개별 요청 타임아웃. 차단/지연되는 포털이 함수 시간 예산을 잡아먹지 않도록 빨리 실패시킨다. */
 const FETCH_TIMEOUT_MS = 8000;
+/**
+ * IRIS 접수예정 탭(ancmPrg=ancmPre)은 서버측 응답이 일관되게 ~12초 걸린다(접수중은 ~1.6초).
+ * 기본 8초 타임아웃으로는 항상 abort되므로 IRIS 요청에만 더 넉넉한 타임아웃을 적용한다.
+ */
+const IRIS_FETCH_TIMEOUT_MS = 20000;
 
 export interface ScrapeSummary {
   announcements: ScrapedAnnouncement[];
@@ -103,12 +108,16 @@ function matchesKeyword(text: string, keyword: string): boolean {
   return false;
 }
 
-async function fetchHtml(url: string, init?: RequestInit): Promise<string> {
+async function fetchHtml(
+  url: string,
+  init?: RequestInit,
+  timeoutMs: number = FETCH_TIMEOUT_MS
+): Promise<string> {
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= FETCH_RETRY_DELAYS_MS.length; attempt++) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetch(url, {
         ...init,
@@ -178,7 +187,7 @@ export async function scrapeIris(
     searchKeyword: keyword,
     searchCondition: "title",
   });
-  const html = await fetchHtml(listUrl);
+  const html = await fetchHtml(listUrl, undefined, IRIS_FETCH_TIMEOUT_MS);
   const results: ScrapedAnnouncement[] = [];
   const seen = new Set<string>();
 

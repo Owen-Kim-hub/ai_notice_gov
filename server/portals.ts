@@ -19,9 +19,15 @@ export interface PortalDefinition {
 // 차단하여 Vercel에서 수집이 불가능하므로 추출 대상에서 제외한다.
 export const PORTALS: PortalDefinition[] = [
   {
-    name: "범부처통합연구지원시스템 (IRIS)",
+    name: "범부처통합연구지원시스템 (IRIS, 접수중)",
     domains: ["iris.go.kr"],
-    listUrl: "https://www.iris.go.kr/contents/retrieveBsnsAncmBtinSituListView.do",
+    listUrl: "https://www.iris.go.kr/contents/retrieveBsnsAncmBtinSituListView.do?ancmPrg=ancmIng",
+    department: "과학기술정보통신부",
+  },
+  {
+    name: "범부처통합연구지원시스템 (IRIS, 접수예정)",
+    domains: ["iris.go.kr"],
+    listUrl: "https://www.iris.go.kr/contents/retrieveBsnsAncmBtinSituListView.do?ancmPrg=ancmPre",
     department: "과학기술정보통신부",
   },
   {
