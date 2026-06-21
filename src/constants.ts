@@ -27,4 +27,4 @@ export const RESULTS_PAGE_SIZE = 15;
 export const KEYWORD_FIELD_COUNT = 3;
 
 /** 기본 수집 기간(종료일 기준으로 며칠 이전부터) */
-export const DEFAULT_RANGE_DAYS = 30;
+export const DEFAULT_RANGE_DAYS = 14;

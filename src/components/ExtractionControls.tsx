@@ -83,13 +83,7 @@ export function ExtractionControls({
                   onFocus={() => setFocusedKeywordIndex(index)}
                   onBlur={() => setFocusedKeywordIndex(null)}
                   onChange={(e) => onKeywordChange(index, e.target.value)}
-                  placeholder={
-                    index === 0
-                      ? "예: 의료기기"
-                      : focusedKeywordIndex === index
-                        ? ""
-                        : "입력 가능"
-                  }
+                  placeholder={focusedKeywordIndex === index ? "" : "입력 가능"}
                   className="w-full pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white font-medium placeholder:text-neutral-400"
                 />
               </div>
