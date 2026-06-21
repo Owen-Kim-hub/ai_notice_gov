@@ -80,12 +80,6 @@ export const PORTALS: PortalDefinition[] = [
     department: "과학기술정보통신부",
   },
   {
-    name: "보건의료기술 종합정보시스템 (HTDream)",
-    domains: ["htdream.kr"],
-    listUrl: "https://www.htdream.kr/main/pubAmt/PubAmtList.do",
-    department: "보건복지부",
-  },
-  {
     name: "연구개발특구",
     domains: ["innopolis.or.kr"],
     listUrl: "https://www.innopolis.or.kr/newBusiness?menuId=MENU01028",

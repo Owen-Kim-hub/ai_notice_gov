@@ -15,9 +15,9 @@ export const PORTALS_LIST: PortalListItem[] = [
   { rank: 8, name: "중소벤처기업부", url: "https://www.mss.go.kr/site/smba/ex/bbs/List.do?cbIdx=310" },
   { rank: 9, name: "보건복지부", url: "https://www.mohw.go.kr/board.es?mid=a10501010200&bid=0003&cg_code=C01" },
   { rank: 10, name: "과학기술정보통신부", url: "https://www.msit.go.kr/bbs/list.do?sCode=user&mPid=121&mId=311" },
-  { rank: 11, name: "보건의료기술 종합정보시스템 (HTDream)", url: "https://www.htdream.kr/main/pubAmt/PubAmtList.do" },
-  { rank: 12, name: "연구개발특구", url: "https://www.innopolis.or.kr/newBusiness?menuId=MENU01028" },
-  { rank: 13, name: "지역산업진흥원", url: "https://www.riis.or.kr/html/pbanc/pbancList.do" },
+  { rank: 11, name: "연구개발특구", url: "https://www.innopolis.or.kr/newBusiness?menuId=MENU01028" },
+  { rank: 12, name: "지역산업진흥원", url: "https://www.riis.or.kr/html/pbanc/pbancList.do" },
+  { rank: 13, name: "보건의료기술 종합정보시스템 (추출제외)", url: "https://www.htdream.kr/main/pubAmt/PubAmtList.do" },
   { rank: 14, name: "범부처통합연구지원시스템 (IRIS, 접수예정)(추출 제외)", url: "https://www.iris.go.kr/contents/retrieveBsnsAncmBtinSituListView.do?ancmPrg=ancmPre" },
   { rank: 15, name: "한국보건산업진흥원 (KHIDI) (추출 제외)", url: "https://www.khidi.or.kr/board?menuId=MENU01108" },
   { rank: 16, name: "의료기기산업 종합정보시스템 (추출 제외)", url: "https://www.khidi.or.kr/board?menuId=MENU01484&siteId=SITE00039" }
