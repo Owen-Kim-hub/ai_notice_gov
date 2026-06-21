@@ -20,7 +20,7 @@ export interface PortalDefinition {
 // 재검증(2026-06-21)에서도 같은 시간 10/10 성공→다른 시간 0/10 실패로 불안정 확인.
 export const PORTALS: PortalDefinition[] = [
   {
-    name: "범부처통합연구지원시스템 (IRIS, 접수중)",
+    name: "범부처통합연구지원시스템 (IRIS)",
     domains: ["iris.go.kr"],
     listUrl: "https://www.iris.go.kr/contents/retrieveBsnsAncmBtinSituListView.do?ancmPrg=ancmIng",
     department: "과학기술정보통신부",

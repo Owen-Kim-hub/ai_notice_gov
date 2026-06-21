@@ -5,7 +5,7 @@ export interface PortalListItem {
 }
 
 export const PORTALS_LIST: PortalListItem[] = [
-  { rank: 1, name: "범부처통합연구지원시스템 (IRIS, 접수중)", url: "https://www.iris.go.kr/contents/retrieveBsnsAncmBtinSituListView.do?ancmPrg=ancmIng" },
+  { rank: 1, name: "범부처통합연구지원시스템 (IRIS)", url: "https://www.iris.go.kr/contents/retrieveBsnsAncmBtinSituListView.do?ancmPrg=ancmIng" },
   { rank: 2, name: "국가과학기술지식정보서비스 (NTIS)", url: "https://www.ntis.go.kr/rndgate/eg/un/ra/mng.do" },
   { rank: 3, name: "한국산업기술기획평가원 (KEIT)", url: "https://srome.keit.re.kr/srome/biz/perform/opnnPrpsl/retrieveTaskAnncmListView.do?prgmId=XPG201040000" },
   { rank: 4, name: "한국산업기술진흥원 (KIAT)", url: "https://www.kiat.or.kr/front/board/boardContentsListPage.do?board_id=90" },
