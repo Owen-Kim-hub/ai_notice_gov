@@ -92,9 +92,9 @@ export const PORTALS: PortalDefinition[] = [
     department: "연구개발특구진흥재단",
   },
   {
-    name: "강원지역산업진흥원",
+    name: "지역산업진흥원",
     domains: ["riis.or.kr"],
     listUrl: "https://www.riis.or.kr/html/pbanc/pbancList.do",
-    department: "강원지역산업진흥원",
+    department: "지역산업진흥원",
   },
 ];
