@@ -19,7 +19,7 @@ export default function App() {
 
   const [startDate, setStartDate] = useState(formatDateKST(getDateDaysBefore(now, DEFAULT_RANGE_DAYS)));
   const [endDate, setEndDate] = useState(defaultEndDate);
-  const [keywordInputs, setKeywordInputs] = useState(["중소기업", "", ""]);
+  const [keywordInputs, setKeywordInputs] = useState(["의료기기", "", ""]);
 
   const [activeTab, setActiveTab] = useState<ResultsTab>("results");
   const [searchTerm, setSearchTerm] = useState("");
