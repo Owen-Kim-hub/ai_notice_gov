@@ -12,3 +12,4 @@ ai-notice-gov.zip
 .claude/
 output/
 tmp/
+.manual_build/
