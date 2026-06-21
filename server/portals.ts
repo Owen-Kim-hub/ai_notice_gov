@@ -102,4 +102,11 @@ export const PORTALS: PortalDefinition[] = [
     listUrl: "https://www.riis.or.kr/html/pbanc/pbancList.do",
     department: "강원지역산업진흥원",
   },
+  // [임시] Vercel 클라우드 IP 신뢰성 재검증용. 측정 후 유지/제외 결정.
+  {
+    name: "한국보건산업진흥원 (KHIDI)",
+    domains: ["khidi.or.kr"],
+    listUrl: "https://www.khidi.or.kr/board?menuId=MENU01108",
+    department: "보건복지부",
+  },
 ];
