@@ -15,12 +15,20 @@ const FETCH_TIMEOUT_MS = 8000;
  * 기본 8초 타임아웃으로는 항상 abort되므로 IRIS 요청에만 더 넉넉한 타임아웃을 적용한다.
  */
 const IRIS_FETCH_TIMEOUT_MS = 20000;
+/**
+ * 전체 수집 소프트 타임버짓. Vercel 함수 maxDuration(60초)에 닿아 전면 실패(결과 0)하는
+ * 대신, 이 시간을 넘기면 남은 포털 수집을 중단하고 그때까지의 결과를 반환한다.
+ * 후처리(중복제거)·응답 직렬화 여유를 위해 60초보다 충분히 낮게 둔다.
+ */
+const SOFT_BUDGET_MS = 45000;
 
 export interface ScrapeSummary {
   announcements: ScrapedAnnouncement[];
   scrapedPortalCount: number;
   portalStats: Record<string, number>;
   errors: { portal: string; message: string }[];
+  /** 시간 예산 초과로 이번 수집에서 건너뛴 포털명(우선순위 하위) */
+  skipped: string[];
 }
 
 export function appendQuery(
@@ -859,11 +867,22 @@ export async function scrapeAllPortals(
   const announcements: ScrapedAnnouncement[] = [];
   const portalStats: Record<string, number> = {};
   const errors: { portal: string; message: string }[] = [];
+  const skipped: string[] = [];
   const globalSeen = new Set<string>();
+  const startedAt = Date.now();
 
   // 포털은 순차로 수집한다. 일부 정부 포털이 동시 요청 시 검색 결과를 빈 페이지로
   // 돌려주는(소프트 차단) 문제가 있어, 안정성을 위해 한 번에 하나씩 호출한다.
-  for (const portal of PORTALS) {
+  for (let i = 0; i < PORTALS.length; i++) {
+    const portal = PORTALS[i];
+
+    // 소프트 타임버짓 초과 시: 남은 포털(우선순위 하위)은 수집하지 않고 중단.
+    // 60초 하드 리밋에 닿아 전면 실패하는 대신, 여기까지의 결과를 반환한다.
+    if (Date.now() - startedAt > SOFT_BUDGET_MS) {
+      for (let j = i; j < PORTALS.length; j++) skipped.push(PORTALS[j].name);
+      break;
+    }
+
     try {
       const scraped = await scrapePortal(portal, startDate, endDate, keyword);
       portalStats[portal.name] = scraped.length;
@@ -888,5 +907,6 @@ export async function scrapeAllPortals(
     scrapedPortalCount: Object.values(portalStats).filter((count) => count > 0).length,
     portalStats,
     errors,
+    skipped,
   };
 }

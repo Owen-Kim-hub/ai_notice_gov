@@ -55,13 +55,29 @@ function buildAnnouncementPool(
     .filter((item) => announcementMatchesKeywords(item, keywords));
 }
 
-function buildWarning(errors: ScrapeError[], finalCount: number): string | undefined {
-  let warning: string | undefined;
+function buildWarning(
+  errors: ScrapeError[],
+  skipped: string[],
+  finalCount: number
+): string | undefined {
+  const parts: string[] = [];
 
   if (errors.length > 0) {
     const failed = [...new Set(errors.map((error) => error.portal))].join(", ");
-    warning = `일부 포털(${failed})에서 공고를 가져오지 못했습니다. 나머지 포털 결과는 정상 반영되었습니다.`;
+    parts.push(
+      `일부 포털(${failed})에서 공고를 가져오지 못했습니다. 나머지 포털 결과는 정상 반영되었습니다.`
+    );
   }
+
+  if (skipped.length > 0) {
+    const list = skipped.join(", ");
+    parts.push(
+      `수집 시간이 예산을 초과하여 우선순위 하위 포털(${list})은 이번 검색에서 수집되지 않았습니다. ` +
+        `위 결과는 그 이전 단계까지 수집된 것이며, 수집 기간을 좁혀 다시 시도하면 누락된 포털도 포함됩니다.`
+    );
+  }
+
+  let warning: string | undefined = parts.length > 0 ? parts.join(" ") : undefined;
 
   if (finalCount === 0) {
     warning = warning
@@ -99,7 +115,7 @@ export async function handleExtract(req: ApiRequest, res: ApiResponse) {
     originalCount: rawPool.length,
     finalCount: results.length,
     portalStats: summary.portalStats,
-    warning: buildWarning(summary.errors, results.length),
+    warning: buildWarning(summary.errors, summary.skipped, results.length),
     isFallback: false,
   });
 }
