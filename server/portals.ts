@@ -91,7 +91,7 @@ export const PORTALS: PortalDefinition[] = [
     department: "보건복지부",
   },
   {
-    name: "강원연구개발특구",
+    name: "연구개발특구",
     domains: ["innopolis.or.kr"],
     listUrl: "https://www.innopolis.or.kr/newBusiness?menuId=MENU01028",
     department: "연구개발특구진흥재단",
