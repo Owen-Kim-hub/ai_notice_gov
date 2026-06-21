@@ -183,34 +183,52 @@ export async function scrapeIris(
   endDate: string,
   keyword: string
 ): Promise<ScrapedAnnouncement[]> {
-  const listUrl = appendQuery(portal.listUrl, {
-    searchKeyword: keyword,
-    searchCondition: "title",
-  });
-  const html = await fetchHtml(listUrl, undefined, IRIS_FETCH_TIMEOUT_MS);
   const results: ScrapedAnnouncement[] = [];
   const seen = new Set<string>();
 
-  const rowPattern =
-    /f_bsnsAncmBtinSituListForm_view\('([^']+)','[^']+'\)[^>]*>([\s\S]*?)<\/a>[\s\S]*?공고일자\s*:<\/em>\s*(\d{4}-\d{2}-\d{2})/gi;
+  // IRIS는 GET ?pageIndex=N 으로 페이지네이션된다(페이지당 ~10건, newer→older).
+  // 접수예정 탭은 한 페이지 응답이 ~12초로 느리고 공고 수도 적어, Vercel 60초 함수
+  // 예산을 지키기 위해 1페이지로 제한한다. 접수중은 빠르므로(~1.6초/페이지) 5페이지까지.
+  const isPre = portal.listUrl.includes("ancmPrg=ancmPre");
+  const maxPages = isPre ? 1 : 5;
 
-  let match: RegExpExecArray | null;
-  while ((match = rowPattern.exec(html)) !== null) {
-    const [, ancmId, rawTitle, rawDate] = match;
-    const title = stripHtml(rawTitle);
-    if (!matchesKeyword(title, keyword)) continue;
-    if (!inDateRange(rawDate, startDate, endDate)) continue;
+  for (let page = 1; page <= maxPages; page++) {
+    const listUrl = appendQuery(portal.listUrl, {
+      searchKeyword: keyword,
+      searchCondition: "title",
+      pageIndex: String(page),
+    });
+    const html = await fetchHtml(listUrl, undefined, IRIS_FETCH_TIMEOUT_MS);
 
-    pushUnique(
-      results,
-      buildAnnouncement(
-        portal,
-        title,
-        `https://www.iris.go.kr/contents/retrieveBsnsAncmView.do?ancmId=${ancmId}`,
-        rawDate
-      ),
-      seen
-    );
+    const rowPattern =
+      /f_bsnsAncmBtinSituListForm_view\('([^']+)','[^']+'\)[^>]*>([\s\S]*?)<\/a>[\s\S]*?공고일자\s*:<\/em>\s*(\d{4}-\d{2}-\d{2})/gi;
+
+    let match: RegExpExecArray | null;
+    let pageRowCount = 0;
+    let allBeforeStart = true; // 페이지 전체가 시작일보다 과거면 이후 페이지는 더 과거 → 중단
+
+    while ((match = rowPattern.exec(html)) !== null) {
+      pageRowCount++;
+      const [, ancmId, rawTitle, rawDate] = match;
+      if (rawDate >= startDate) allBeforeStart = false;
+      const title = stripHtml(rawTitle);
+      if (!matchesKeyword(title, keyword)) continue;
+      if (!inDateRange(rawDate, startDate, endDate)) continue;
+
+      pushUnique(
+        results,
+        buildAnnouncement(
+          portal,
+          title,
+          `https://www.iris.go.kr/contents/retrieveBsnsAncmView.do?ancmId=${ancmId}`,
+          rawDate
+        ),
+        seen
+      );
+    }
+
+    if (pageRowCount === 0) break; // 더 이상 페이지 없음
+    if (allBeforeStart) break; // 페이지 전체가 시작일 이전 → 더 볼 필요 없음
   }
 
   return results;
