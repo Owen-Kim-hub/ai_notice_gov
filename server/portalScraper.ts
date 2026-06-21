@@ -240,34 +240,46 @@ export async function scrapeNtis(
   endDate: string,
   keyword: string
 ): Promise<ScrapedAnnouncement[]> {
-  const listUrl = appendQuery(portal.listUrl, {
-    searchKeyword: keyword,
-    pageNo: "1",
-  });
-  const html = await fetchHtml(listUrl);
   const results: ScrapedAnnouncement[] = [];
   const seen = new Set<string>();
 
-  const rowPattern =
-    /fn_view\('(\d+)'\)[\s\S]*?title="([^"]+)"[\s\S]*?접수일[^>]*>\s*([\d.]+)/gi;
+  // NTIS는 GET ?pageIndex=N 으로 페이지네이션된다(페이지당 ~10건, 최신→과거).
+  for (let page = 1; page <= 5; page++) {
+    const listUrl = appendQuery(portal.listUrl, {
+      searchKeyword: keyword,
+      pageIndex: String(page),
+    });
+    const html = await fetchHtml(listUrl);
 
-  let match: RegExpExecArray | null;
-  while ((match = rowPattern.exec(html)) !== null) {
-    const [, uid, rawTitle, rawDate] = match;
-    const title = stripHtml(rawTitle);
-    if (!matchesKeyword(title, keyword)) continue;
-    if (!inDateRange(rawDate, startDate, endDate)) continue;
+    const rowPattern =
+      /fn_view\('(\d+)'\)[\s\S]*?title="([^"]+)"[\s\S]*?접수일[^>]*>\s*([\d.]+)/gi;
 
-    pushUnique(
-      results,
-      buildAnnouncement(
-        portal,
-        title,
-        `https://www.ntis.go.kr/rndgate/eg/un/ra/view.do?roRndUid=${uid}&flag=rndList`,
-        rawDate
-      ),
-      seen
-    );
+    let match: RegExpExecArray | null;
+    let pageRowCount = 0;
+    let allBeforeStart = true;
+
+    while ((match = rowPattern.exec(html)) !== null) {
+      pageRowCount++;
+      const [, uid, rawTitle, rawDate] = match;
+      if (normalizeDate(rawDate) >= startDate) allBeforeStart = false;
+      const title = stripHtml(rawTitle);
+      if (!matchesKeyword(title, keyword)) continue;
+      if (!inDateRange(rawDate, startDate, endDate)) continue;
+
+      pushUnique(
+        results,
+        buildAnnouncement(
+          portal,
+          title,
+          `https://www.ntis.go.kr/rndgate/eg/un/ra/view.do?roRndUid=${uid}&flag=rndList`,
+          rawDate
+        ),
+        seen
+      );
+    }
+
+    if (pageRowCount === 0) break;
+    if (allBeforeStart) break;
   }
 
   return results;
@@ -279,34 +291,48 @@ export async function scrapeKeit(
   endDate: string,
   keyword: string
 ): Promise<ScrapedAnnouncement[]> {
-  const listUrl = appendQuery(portal.listUrl, {
-    searchKeyword: keyword,
-    searchCondition: "title",
-  });
-  const html = await fetchHtml(listUrl);
   const results: ScrapedAnnouncement[] = [];
   const seen = new Set<string>();
 
-  const rowPattern =
-    /f_detail\('([^']+)',\s*'(\d{4})'\)[\s\S]*?<span class="title">([\s\S]*?)<\/span>[\s\S]*?등록일<\/span><span class="value">\s*(\d{4}-\d{2}-\d{2})/gi;
+  // KEIT는 GET ?pageIndex=N 으로 페이지네이션된다. 단 목록 정렬키가 등록일이 아니라
+  // 페이지 내 등록일이 다소 들쑥날쑥하므로, "페이지 전체가 시작일 이전일 때만" 중단한다.
+  for (let page = 1; page <= 5; page++) {
+    const listUrl = appendQuery(portal.listUrl, {
+      searchKeyword: keyword,
+      searchCondition: "title",
+      pageIndex: String(page),
+    });
+    const html = await fetchHtml(listUrl);
 
-  let match: RegExpExecArray | null;
-  while ((match = rowPattern.exec(html)) !== null) {
-    const [, ancmId, bsnsYy, rawTitle, rawDate] = match;
-    const title = stripHtml(rawTitle);
-    if (!matchesKeyword(title, keyword)) continue;
-    if (!inDateRange(rawDate, startDate, endDate)) continue;
+    const rowPattern =
+      /f_detail\('([^']+)',\s*'(\d{4})'\)[\s\S]*?<span class="title">([\s\S]*?)<\/span>[\s\S]*?등록일<\/span><span class="value">\s*(\d{4}-\d{2}-\d{2})/gi;
 
-    const detailUrl = appendQuery(
-      "https://srome.keit.re.kr/srome/biz/perform/opnnPrpsl/retrieveTaskAnncmInfoView.do",
-      {
-        prgmId: "XPG201040000",
-        ancmId,
-        bsnsYy,
-      }
-    );
+    let match: RegExpExecArray | null;
+    let pageRowCount = 0;
+    let allBeforeStart = true;
 
-    pushUnique(results, buildAnnouncement(portal, title, detailUrl, rawDate), seen);
+    while ((match = rowPattern.exec(html)) !== null) {
+      pageRowCount++;
+      const [, ancmId, bsnsYy, rawTitle, rawDate] = match;
+      if (rawDate >= startDate) allBeforeStart = false;
+      const title = stripHtml(rawTitle);
+      if (!matchesKeyword(title, keyword)) continue;
+      if (!inDateRange(rawDate, startDate, endDate)) continue;
+
+      const detailUrl = appendQuery(
+        "https://srome.keit.re.kr/srome/biz/perform/opnnPrpsl/retrieveTaskAnncmInfoView.do",
+        {
+          prgmId: "XPG201040000",
+          ancmId,
+          bsnsYy,
+        }
+      );
+
+      pushUnique(results, buildAnnouncement(portal, title, detailUrl, rawDate), seen);
+    }
+
+    if (pageRowCount === 0) break;
+    if (allBeforeStart) break;
   }
 
   return results;
@@ -487,31 +513,44 @@ export async function scrapeMss(
   endDate: string,
   keyword: string
 ): Promise<ScrapedAnnouncement[]> {
-  const listUrl = appendQuery(portal.listUrl, {
-    searchKey: "title",
-    searchVal: keyword,
-  });
-  const html = await fetchHtml(listUrl);
   const results: ScrapedAnnouncement[] = [];
   const seen = new Set<string>();
 
-  const rowPattern =
-    /doBbsFView\('(\d+)','(\d+)'[^)]*\)[^>]*title="([^"]+)"[\s\S]*?(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/gi;
-
-  let match: RegExpExecArray | null;
-  while ((match = rowPattern.exec(html)) !== null) {
-    const [, cbIdx, bcIdx, rawTitle, y, m, d] = match;
-    const title = stripHtml(rawTitle);
-    const rawDate = `${y}-${m}-${d}`;
-    if (!matchesKeyword(title, keyword)) continue;
-    if (!inDateRange(rawDate, startDate, endDate)) continue;
-
-    const detailUrl = appendQuery("https://www.mss.go.kr/site/smba/ex/bbs/View.do", {
-      cbIdx,
-      bcIdx,
+  // 중소벤처기업부는 GET ?pageIndex=N 으로 페이지네이션된다(게시순서 내림차순=최신→과거).
+  for (let page = 1; page <= 5; page++) {
+    const listUrl = appendQuery(portal.listUrl, {
+      searchKey: "title",
+      searchVal: keyword,
+      pageIndex: String(page),
     });
+    const html = await fetchHtml(listUrl);
 
-    pushUnique(results, buildAnnouncement(portal, title, detailUrl, rawDate), seen);
+    const rowPattern =
+      /doBbsFView\('(\d+)','(\d+)'[^)]*\)[^>]*title="([^"]+)"[\s\S]*?(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/gi;
+
+    let match: RegExpExecArray | null;
+    let pageRowCount = 0;
+    let allBeforeStart = true;
+
+    while ((match = rowPattern.exec(html)) !== null) {
+      pageRowCount++;
+      const [, cbIdx, bcIdx, rawTitle, y, m, d] = match;
+      const rawDate = `${y}-${m}-${d}`;
+      if (normalizeDate(rawDate) >= startDate) allBeforeStart = false;
+      const title = stripHtml(rawTitle);
+      if (!matchesKeyword(title, keyword)) continue;
+      if (!inDateRange(rawDate, startDate, endDate)) continue;
+
+      const detailUrl = appendQuery("https://www.mss.go.kr/site/smba/ex/bbs/View.do", {
+        cbIdx,
+        bcIdx,
+      });
+
+      pushUnique(results, buildAnnouncement(portal, title, detailUrl, rawDate), seen);
+    }
+
+    if (pageRowCount === 0) break;
+    if (allBeforeStart) break;
   }
 
   return results;
@@ -734,24 +773,37 @@ export async function scrapeMotir(
   endDate: string,
   keyword: string
 ): Promise<ScrapedAnnouncement[]> {
-  const html = await fetchHtml(portal.listUrl);
   const results: ScrapedAnnouncement[] = [];
   const seen = new Set<string>();
 
   // 게시판 행: 공고번호 | <a href="javascript:article.view('<id>')"><i>제목</i></a> |
   // 담당부서 | 등록일(공고일) | 조회수. 상세는 GET {listUrl}/{id}/view 로 접근 가능.
-  const rowPattern =
-    /article\.view\('(\d+)'\)[^>]*>([\s\S]*?)<\/a>[\s\S]*?(\d{4}-\d{2}-\d{2})/gi;
+  // GET ?pageIndex=N 으로 페이지네이션되며 등록일 기준 깔끔한 내림차순이다.
+  for (let page = 1; page <= 5; page++) {
+    const listUrl = appendQuery(portal.listUrl, { pageIndex: String(page) });
+    const html = await fetchHtml(listUrl);
 
-  let match: RegExpExecArray | null;
-  while ((match = rowPattern.exec(html)) !== null) {
-    const [, articleId, rawTitle, rawDate] = match;
-    const title = stripHtml(rawTitle);
-    if (!matchesKeyword(title, keyword)) continue;
-    if (!inDateRange(rawDate, startDate, endDate)) continue;
+    const rowPattern =
+      /article\.view\('(\d+)'\)[^>]*>([\s\S]*?)<\/a>[\s\S]*?(\d{4}-\d{2}-\d{2})/gi;
 
-    const detailUrl = `${portal.listUrl}/${articleId}/view`;
-    pushUnique(results, buildAnnouncement(portal, title, detailUrl, rawDate), seen);
+    let match: RegExpExecArray | null;
+    let pageRowCount = 0;
+    let allBeforeStart = true;
+
+    while ((match = rowPattern.exec(html)) !== null) {
+      pageRowCount++;
+      const [, articleId, rawTitle, rawDate] = match;
+      if (rawDate >= startDate) allBeforeStart = false;
+      const title = stripHtml(rawTitle);
+      if (!matchesKeyword(title, keyword)) continue;
+      if (!inDateRange(rawDate, startDate, endDate)) continue;
+
+      const detailUrl = `${portal.listUrl}/${articleId}/view`;
+      pushUnique(results, buildAnnouncement(portal, title, detailUrl, rawDate), seen);
+    }
+
+    if (pageRowCount === 0) break;
+    if (allBeforeStart) break;
   }
 
   return results;
