@@ -54,7 +54,7 @@ export function downloadAnnouncementsCsv(
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.setAttribute("href", url);
-  link.setAttribute("download", `AI_공고추출결과_${startDate}_to_${endDate}.csv`);
+  link.setAttribute("download", `WMIT_공고추출결과_${startDate}_to_${endDate}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

@@ -53,14 +53,14 @@ export function ResultsPanel({
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 space-y-3">
           <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
-          <span className="text-xs text-neutral-500 font-medium">실시간 R&D 포털 탐색 및 AI 공고 수집 중...</span>
+          <span className="text-xs text-neutral-500 font-medium">실시간 R&D 포털 탐색 및 WMIT 공고 수집 중...</span>
         </div>
       ) : (
         <div className="space-y-3">
           {results.length === 0 ? (
             <div className="text-center py-20 border border-dashed border-neutral-200 rounded-2xl">
               <Info className="w-8 h-8 text-neutral-300 mx-auto mb-2" />
-              <p className="text-xs text-neutral-500">선택한 기간 동안 발견된 AI R&D 공고가 없습니다.</p>
+              <p className="text-xs text-neutral-500">선택한 기간 동안 발견된 WMIT R&D 공고가 없습니다.</p>
               <p className="text-[10px] text-neutral-400 mt-1">기간 설정을 조정하거나 핵심 타겟 키워드를 변경해 보세요.</p>
             </div>
           ) : (

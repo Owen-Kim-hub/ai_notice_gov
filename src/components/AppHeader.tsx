@@ -11,8 +11,8 @@ export function AppHeader() {
             className="h-7 w-auto object-contain"
           />
           <div>
-            <h1 className="text-base font-semibold tracking-tight text-neutral-900" id="header-title">AI 사업공고 추출시스템</h1>
-            <p className="text-[10px] text-neutral-500 font-mono -mt-0.5">AI Government Funding Notice Extraction System</p>
+            <h1 className="text-base font-semibold tracking-tight text-neutral-900" id="header-title">WMIT 사업공고 추출시스템</h1>
+            <p className="text-[10px] text-neutral-500 font-mono -mt-0.5">WMIT Government Funding Notice Extraction System</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">

@@ -89,7 +89,7 @@ export function ExtractionControls({
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-neutral-400 mt-1">포털 사이트 내 AI R&D 연계 공고를 매칭합니다.</p>
+          <p className="text-[10px] text-neutral-400 mt-1">포털 사이트 내 WMIT R&D 연계 공고를 매칭합니다.</p>
         </div>
 
         {/* Search execution Button */}
@@ -112,7 +112,7 @@ export function ExtractionControls({
           ) : (
             <>
               <RefreshCw className="w-4 h-4" />
-              <span>AI R&D 공고 추출 및 중복 전처리</span>
+              <span>WMIT R&D 공고 추출 및 중복 전처리</span>
             </>
           )}
         </button>
