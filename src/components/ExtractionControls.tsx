@@ -98,23 +98,17 @@ export function ExtractionControls({
           id="btn-extract"
           onClick={onExtract}
           disabled={loading}
-          className={`w-full py-2.5 px-4 rounded-xl font-medium text-sm text-white shadow-xs transition-colors duration-150 flex items-center justify-center space-x-2 cursor-pointer ${
+          className={`w-full py-3.5 px-4 rounded-xl font-medium text-sm text-white shadow-xs transition-colors duration-150 flex flex-col items-center justify-center space-y-1 cursor-pointer ${
             loading
               ? "bg-indigo-400 cursor-not-allowed"
               : "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800"
           }`}
         >
-          {loading ? (
-            <>
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              <span>공고 추출 & 분석 가동 중...</span>
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-4 h-4" />
-              <span>WMIT R&D 공고 추출 및 중복 전처리</span>
-            </>
-          )}
+          <span className="flex items-center justify-center space-x-2">
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <span>{loading ? "공고 추출 & 분석 가동 중..." : "WMIT R&D 공고 추출 및 중복 전처리"}</span>
+          </span>
+          <span className="text-[10px] font-normal text-indigo-100">(추출에 1분내외의 시간 소요)</span>
         </button>
       </div>
     </div>
