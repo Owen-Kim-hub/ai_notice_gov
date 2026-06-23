@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Analytics } from "@vercel/analytics/react";
 import { DEFAULT_RANGE_DAYS } from "./constants";
 import { formatDateKST, getDateDaysBefore } from "./utils/date";
 import { downloadAnnouncementsCsv } from "./utils/csv";
@@ -124,6 +125,7 @@ export default function App() {
       </main>
 
       <AppFooter />
+      <Analytics />
     </div>
   );
 }
