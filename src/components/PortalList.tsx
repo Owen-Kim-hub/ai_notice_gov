@@ -7,12 +7,12 @@ export function PortalList() {
       <h3 className="font-semibold text-xs text-neutral-400 uppercase tracking-wider mb-3">연동 및 보정 포털 리스트</h3>
       <div className="space-y-1.5 text-xs">
         {PORTALS_LIST.map((p) => (
-          <div key={p.rank} className="flex items-center justify-between py-1 border-b border-neutral-50/50 last:border-0 hover:bg-neutral-50 px-1 rounded">
-            <div className="flex items-center space-x-2 min-w-0">
-              <span className="w-4 h-4 rounded text-[9px] font-bold flex items-center justify-center shrink-0 bg-neutral-100 text-neutral-600">
+          <div key={p.rank} className="flex items-start justify-between py-1 border-b border-neutral-50/50 last:border-0 hover:bg-neutral-50 px-1 rounded">
+            <div className="flex items-start space-x-2 min-w-0">
+              <span className="w-4 h-4 rounded text-[9px] font-bold flex items-center justify-center shrink-0 bg-neutral-100 text-neutral-600 mt-0.5">
                 {p.rank}
               </span>
-              <span className="truncate text-neutral-700 font-medium" title={p.name}>{p.name}</span>
+              <span className="whitespace-normal break-keep text-neutral-700 font-medium" title={p.name}>{p.name}</span>
             </div>
             <a
               href={p.url}
