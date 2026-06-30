@@ -82,20 +82,13 @@ function decodeHtmlEntities(text: string): string {
     .replace(/&#x27;/g, "'");
 }
 
-function decodeJsEscaped(text: string): string {
-  try {
-    return decodeURIComponent(text.replace(/\+/g, "%20"));
-  } catch {
-    return text;
-  }
-}
-
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function normalizeDate(value: string): string {
-  const match = value.match(/(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
+  // 구분자 주변 공백 허용: "2026. 6. 30"(msit) 같은 형식도 정규화한다.
+  const match = value.match(/(\d{4})\s*[.\-/]\s*(\d{1,2})\s*[.\-/]\s*(\d{1,2})/);
   if (!match) return value.trim();
   return `${match[1]}-${match[2].padStart(2, "0")}-${match[3].padStart(2, "0")}`;
 }
@@ -447,28 +440,56 @@ export async function scrapeMsit(
   endDate: string,
   keyword: string
 ): Promise<ScrapedAnnouncement[]> {
+  // 주의: searchTxt 파라미터를 함께 보내면 서버가 빈(템플릿만 있는) 페이지를 반환한다.
+  // searchWord만 사용한다.
   const listUrl = appendQuery(portal.listUrl, {
     searchOption: "title",
     searchWord: keyword,
-    searchTxt: keyword,
     pageIndex: "1",
   });
   const html = await fetchHtml(listUrl);
   const results: ScrapedAnnouncement[] = [];
   const seen = new Set<string>();
 
-  const blockPattern = /fn_detail\((\d+)\);[\s\S]*?unescape\('([^']+)'\)/gi;
+  // msit는 목록 행을 JS로 동적 렌더한다. 한 행은
+  //   sHtml+= unescape('제목');                              (제목, 라이브)
+  //   $('#td_'+'REG_DT'+'_N').html('2026. 6. 30');           (등록일, 라이브)
+  //   //sHtml+='fn_detail(NNN)"';                            (상세 글번호)
+  // 형태로 구성된다. 제목은 등장 순서가 곧 행 인덱스(N)이며, 날짜·글번호를
+  // 인덱스/근접 위치로 짝지어 추출한다. (과거의 fn_detail+unescape 단일 패턴은
+  // 함수 정의부에만 매칭돼 1건만 잡혔다.)
+
+  // 행 인덱스 → 등록일. 주석(//)이 아닌 라이브 설정부만 사용한다.
+  const dateByIndex: Record<string, string> = {};
+  const dateRe =
+    /([^\n]*)\$\('#td_'\+'REG_DT'\+'_(\d+)'\)\.html\('([^']+)'\)/g;
+  let dateMatch: RegExpExecArray | null;
+  while ((dateMatch = dateRe.exec(html)) !== null) {
+    if (dateMatch[1].includes("//")) continue;
+    if (!(dateMatch[2] in dateByIndex)) dateByIndex[dateMatch[2]] = dateMatch[3];
+  }
+
+  const titleRe = /sHtml\+= unescape\('([^']+)'\)/g;
   let match: RegExpExecArray | null;
+  let rowIndex = 0;
+  while ((match = titleRe.exec(html)) !== null) {
+    const idx = String(rowIndex);
+    rowIndex++;
 
-  while ((match = blockPattern.exec(html)) !== null) {
-    const [, nttSeqNo, escapedTitle] = match;
-    const title = decodeJsEscaped(escapedTitle);
-    if (!matchesKeyword(title, keyword)) continue;
+    const title = stripHtml(match[1]);
+    if (!title || !matchesKeyword(title, keyword)) continue;
 
-    const tail = html.slice(match.index, match.index + 1200);
-    const dateMatch = tail.match(/(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
-    const rawDate = dateMatch ? normalizeDate(dateMatch[0]) : startDate;
+    const rawDate = dateByIndex[idx];
+    if (!rawDate) continue;
     if (!inDateRange(rawDate, startDate, endDate)) continue;
+
+    // 글번호는 제목 직전 블록의 fn_detail(NNN) 또는 data-value="NNN"에 있다.
+    const before = html.slice(Math.max(0, match.index - 400), match.index);
+    const seqMatches =
+      [...before.matchAll(/fn_detail\((\d+)\)/g)].pop() ||
+      [...before.matchAll(/data-value="(\d+)"/g)].pop();
+    const nttSeqNo = seqMatches ? seqMatches[1] : "";
+    if (!nttSeqNo) continue;
 
     const detailUrl = appendQuery("https://www.msit.go.kr/bbs/view.do", {
       sCode: "user",
@@ -758,10 +779,18 @@ export async function scrapeGenericListPage(
 
     const hrefIndex = match.index;
     const contextStart = Math.max(0, hrefIndex - 250);
-    const contextEnd = Math.min(html.length, hrefIndex + 500);
+    const contextEnd = Math.min(html.length, hrefIndex + 700);
     const context = html.slice(contextStart, contextEnd);
-    const titleMatch = context.match(/>([^<]{8,200})</);
-    const title = titleMatch ? stripHtml(titleMatch[1]) : "";
+
+    // 제목은 보통 링크 바로 뒤에 온다(<a href="...">제목</a>). 먼저 그 위치를
+    // 시도하고, 없으면 링크 앞쪽 컨텍스트에서 찾는다.
+    const after = html.slice(hrefIndex + match[0].length, hrefIndex + match[0].length + 300);
+    const afterMatch = after.match(/^[^>]*>\s*([^<]{8,200})</);
+    let title = afterMatch ? stripHtml(afterMatch[1]) : "";
+    if (!title) {
+      const titleMatch = context.match(/>([^<]{8,200})</);
+      title = titleMatch ? stripHtml(titleMatch[1]) : "";
+    }
     if (!title || !matchesKeyword(title, keyword)) continue;
 
     const dateMatch = context.match(/(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})/);
